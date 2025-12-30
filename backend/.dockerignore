@@ -1,0 +1,39 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+coverage
+.nyc_output
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+docs
+
+# Docker files (not needed in image)
+Dockerfile*
+docker-compose*
+.dockerignore

@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: united_exchange_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-united_exchange}
+      MYSQL_USER: ${DB_USER:-exchange_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-exchange_password}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - exchange_network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: united_exchange_api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=${DB_USER:-exchange_user}
+      - DB_PASSWORD=${DB_PASSWORD:-exchange_password}
+      - DB_NAME=${DB_NAME:-united_exchange}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:-change-this-in-production-access}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-change-this-in-production-refresh}
+      - JWT_ACCESS_EXPIRES_IN=${JWT_ACCESS_EXPIRES_IN:-15m}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-7d}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost}
+    volumes:
+      - backend_logs:/app/logs
+    ports:
+      - "5000:5000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - exchange_network
+
+  # Frontend (React)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-/api}
+    container_name: united_exchange_web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+    networks:
+      - exchange_network
+
+volumes:
+  mysql_data:
+    driver: local
+  backend_logs:
+    driver: local
+
+networks:
+  exchange_network:
+    driver: bridge

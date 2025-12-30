@@ -1,0 +1,43 @@
+version: '3.8'
+
+# Development override - use with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  mysql:
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: devpassword
+      MYSQL_DATABASE: united_exchange_dev
+      MYSQL_USER: dev_user
+      MYSQL_PASSWORD: dev_password
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=mysql
+      - DB_USER=dev_user
+      - DB_PASSWORD=dev_password
+      - DB_NAME=united_exchange_dev
+      - JWT_ACCESS_SECRET=dev-access-secret-change-in-production
+      - JWT_REFRESH_SECRET=dev-refresh-secret-change-in-production
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run dev
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000/api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    command: npm start

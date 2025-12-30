@@ -1,0 +1,25 @@
+# Development Dockerfile for United Exchange Backend
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install nodemon globally for hot reload
+RUN npm install -g nodemon
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including devDependencies)
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Create logs directory
+RUN mkdir -p logs
+
+# Expose port
+EXPOSE 5000
+
+# Start with nodemon for hot reload
+CMD ["nodemon", "--watch", "src", "src/index.js"]
