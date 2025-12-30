@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 
-const Input = ({
+const Input = forwardRef(({
   label,
   type = 'text',
   error,
   className = '',
   ...props
-}) => {
+}, ref) => {
   return (
     <div className={className}>
       {label && (
@@ -15,6 +15,7 @@ const Input = ({
         </label>
       )}
       <input
+        ref={ref}
         type={type}
         className={`input-field ${error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''}`}
         {...props}
@@ -24,6 +25,8 @@ const Input = ({
       )}
     </div>
   );
-};
+});
+
+Input.displayName = 'Input';
 
 export default Input;
