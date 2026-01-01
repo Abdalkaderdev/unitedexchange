@@ -19,6 +19,7 @@ import ShiftsPage from './pages/ShiftsPage';
 import ReportBuilderPage from './pages/ReportBuilderPage';
 import TransactionDetailPage from './pages/TransactionDetailPage';
 import AuditLogsPage from './pages/AuditLogsPage';
+import PermissionsPage from './pages/PermissionsPage';
 
 // i18n
 import './i18n';
@@ -169,6 +170,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute adminOnly>
             <AuditLogsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/permissions"
+        element={
+          <ProtectedRoute adminOnly>
+            <PermissionsPage />
           </ProtectedRoute>
         }
       />

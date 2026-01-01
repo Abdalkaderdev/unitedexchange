@@ -13,7 +13,8 @@ import {
   BanknotesIcon,
   CalendarDaysIcon,
   WrenchScrewdriverIcon,
-  ClipboardDocumentListIcon
+  ClipboardDocumentListIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -34,6 +35,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const adminNavigation = [
     { name: t('nav.users'), href: '/users', icon: UsersIcon },
+    { name: t('nav.permissions') || 'Permissions', href: '/permissions', icon: ShieldCheckIcon },
     { name: t('nav.auditLogs') || 'Audit Logs', href: '/audit-logs', icon: ClipboardDocumentListIcon },
   ];
 

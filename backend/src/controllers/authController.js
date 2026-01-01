@@ -10,6 +10,7 @@ const { pool } = require('../config/database');
 const jwtConfig = require('../config/jwt');
 const { logAudit, getClientIp } = require('../utils/helpers');
 const { recordFailedLogin, recordSuccessfulLogin } = require('../middleware/rateLimiter');
+const { getUserPermissions } = require('../middleware/auth');
 
 // Password hashing configuration
 const BCRYPT_ROUNDS = 12; // Cost factor for bcrypt
@@ -143,6 +144,9 @@ const login = async (req, res, next) => {
     await logAudit(user.id, 'LOGIN', 'users', user.id, null,
       { ip: ipAddress, userAgent }, ipAddress, 'info');
 
+    // Get user permissions
+    const permissions = await getUserPermissions(user.role);
+
     res.json({
       success: true,
       message: 'Login successful.',
@@ -155,7 +159,8 @@ const login = async (req, res, next) => {
           username: user.username,
           email: user.email,
           fullName: user.full_name,
-          role: user.role
+          role: user.role,
+          permissions
         }
       }
     });
@@ -307,6 +312,9 @@ const logoutAll = async (req, res, next) => {
  */
 const getProfile = async (req, res, next) => {
   try {
+    // Get user permissions
+    const permissions = await getUserPermissions(req.user.role);
+
     res.json({
       success: true,
       data: {
@@ -314,7 +322,8 @@ const getProfile = async (req, res, next) => {
         username: req.user.username,
         email: req.user.email,
         fullName: req.user.full_name,
-        role: req.user.role
+        role: req.user.role,
+        permissions
       }
     });
   } catch (error) {

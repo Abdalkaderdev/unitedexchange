@@ -68,7 +68,8 @@
     "cashDrawers": "Cash Drawers",
     "shifts": "Shifts",
     "reportBuilder": "Report Builder",
-    "auditLogs": "Audit Logs"
+    "auditLogs": "Audit Logs",
+    "permissions": "Permissions"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -464,6 +465,18 @@
       "shiftStart": "Shift Start",
       "shiftEnd": "Shift End"
     }
+  },
+  "permissions": {
+    "title": "Role Permissions",
+    "subtitle": "Manage what each role can access and do",
+    "manager": "Manager",
+    "teller": "Teller",
+    "viewer": "Viewer",
+    "users": "users",
+    "permissions": "Permissions",
+    "saved": "Permissions updated successfully",
+    "cannotEditAdmin": "Cannot modify admin permissions",
+    "adminNote": "Administrators have full access to all features. Their permissions cannot be modified."
   },
   "reportBuilder": {
     "title": "Custom Report Builder",

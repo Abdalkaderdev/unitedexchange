@@ -99,4 +99,110 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = { authenticate, authorize };
+/**
+ * Permission cache to avoid repeated DB queries
+ * Cache permissions for 5 minutes
+ */
+let permissionCache = {};
+let permissionCacheTime = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Load role permissions into cache
+ */
+const loadPermissions = async () => {
+  const now = Date.now();
+  if (permissionCache && Object.keys(permissionCache).length > 0 && (now - permissionCacheTime) < CACHE_TTL) {
+    return permissionCache;
+  }
+
+  try {
+    const [rows] = await pool.query(`
+      SELECT rp.role, p.code
+      FROM role_permissions rp
+      JOIN permissions p ON rp.permission_id = p.id
+    `);
+
+    const cache = {};
+    for (const row of rows) {
+      if (!cache[row.role]) {
+        cache[row.role] = new Set();
+      }
+      cache[row.role].add(row.code);
+    }
+
+    permissionCache = cache;
+    permissionCacheTime = now;
+    return cache;
+  } catch (error) {
+    console.error('Error loading permissions:', error);
+    return permissionCache; // Return stale cache on error
+  }
+};
+
+/**
+ * Clear permission cache (call when permissions are updated)
+ */
+const clearPermissionCache = () => {
+  permissionCache = {};
+  permissionCacheTime = 0;
+};
+
+/**
+ * Require specific permission(s) to access a route
+ * @param {...string} permissions - Permission codes required (any one must match)
+ */
+const requirePermission = (...permissions) => {
+  return async (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authenticated.'
+      });
+    }
+
+    // Admin always has all permissions
+    if (req.user.role === 'admin') {
+      return next();
+    }
+
+    try {
+      const cache = await loadPermissions();
+      const userPermissions = cache[req.user.role] || new Set();
+
+      // Check if user has any of the required permissions
+      const hasPermission = permissions.some(p => userPermissions.has(p));
+
+      if (!hasPermission) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Required permission not granted.'
+        });
+      }
+
+      next();
+    } catch (error) {
+      console.error('Permission check error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error checking permissions.'
+      });
+    }
+  };
+};
+
+/**
+ * Get all permissions for a user's role
+ */
+const getUserPermissions = async (role) => {
+  const cache = await loadPermissions();
+  return Array.from(cache[role] || []);
+};
+
+module.exports = {
+  authenticate,
+  authorize,
+  requirePermission,
+  getUserPermissions,
+  clearPermissionCache
+};
