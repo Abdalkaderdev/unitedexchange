@@ -24,6 +24,46 @@ export const transactionService = {
   deleteTransaction: async (uuid) => {
     const response = await api.delete(`/transactions/${uuid}`);
     return response.data;
+  },
+
+  updateTransaction: async (uuid, data) => {
+    const response = await api.put(`/transactions/${uuid}`, data);
+    return response.data;
+  },
+
+  // Receipt methods
+  getReceipt: async (uuid, options = {}) => {
+    const { type = 'customer', download = false, lang = 'en' } = options;
+    const response = await api.get(`/transactions/${uuid}/receipt`, {
+      params: { type, download: download ? 'true' : 'false', lang },
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  emailReceipt: async (uuid, email, options = {}) => {
+    const { type = 'customer', lang = 'en' } = options;
+    const response = await api.post(`/transactions/${uuid}/receipt/email`, {
+      email,
+      type,
+      lang
+    });
+    return response.data;
+  },
+
+  getReceiptHistory: async (uuid) => {
+    const response = await api.get(`/transactions/${uuid}/receipt/history`);
+    return response.data;
+  },
+
+  logReceiptAction: async (uuid, action, options = {}) => {
+    const { type = 'customer', lang = 'en' } = options;
+    const response = await api.post(`/transactions/${uuid}/receipt/log`, {
+      action,
+      type,
+      lang
+    });
+    return response.data;
   }
 };
 

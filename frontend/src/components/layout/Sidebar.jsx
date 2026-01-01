@@ -8,12 +8,12 @@ import {
   ArrowsRightLeftIcon,
   DocumentChartBarIcon,
   UsersIcon,
-  Cog6ToothIcon,
   ClockIcon,
   UserGroupIcon,
   BanknotesIcon,
   CalendarDaysIcon,
-  WrenchScrewdriverIcon
+  WrenchScrewdriverIcon,
+  ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -34,6 +34,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const adminNavigation = [
     { name: t('nav.users'), href: '/users', icon: UsersIcon },
+    { name: t('nav.auditLogs') || 'Audit Logs', href: '/audit-logs', icon: ClipboardDocumentListIcon },
   ];
 
   const NavItem = ({ item }) => (

@@ -17,6 +17,8 @@ const shiftRoutes = require('./shiftRoutes');
 const complianceRoutes = require('./complianceRoutes');
 const healthRoutes = require('./healthRoutes');
 const scheduledReportRoutes = require('./scheduledReportRoutes');
+const filterPresetRoutes = require('./filterPresetRoutes');
+const auditRoutes = require('./auditRoutes');
 
 // Mount routes
 router.use('/auth', authRoutes);
@@ -30,5 +32,7 @@ router.use('/shifts', shiftRoutes);
 router.use('/compliance', complianceRoutes);
 router.use('/health', healthRoutes);
 router.use('/scheduled-reports', scheduledReportRoutes);
+router.use('/filter-presets', filterPresetRoutes);
+router.use('/audit-logs', auditRoutes);
 
 module.exports = router;

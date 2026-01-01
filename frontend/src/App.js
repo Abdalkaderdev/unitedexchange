@@ -17,6 +17,8 @@ import CustomersPage from './pages/CustomersPage';
 import CashDrawersPage from './pages/CashDrawersPage';
 import ShiftsPage from './pages/ShiftsPage';
 import ReportBuilderPage from './pages/ReportBuilderPage';
+import TransactionDetailPage from './pages/TransactionDetailPage';
+import AuditLogsPage from './pages/AuditLogsPage';
 
 // i18n
 import './i18n';
@@ -89,6 +91,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/transactions/:uuid"
+        element={
+          <ProtectedRoute>
+            <TransactionDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/currencies"
         element={
           <ProtectedRoute>
@@ -151,6 +161,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute adminOnly>
             <UsersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/audit-logs"
+        element={
+          <ProtectedRoute adminOnly>
+            <AuditLogsPage />
           </ProtectedRoute>
         }
       />

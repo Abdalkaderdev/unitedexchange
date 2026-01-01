@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { Button, Input, Select, Modal, Card, Loading } from '../components/common';
 import { Pagination } from '../components/common/Table';
+import { OpenShiftModal, CloseShiftModal } from '../components/shifts';
 import shiftService from '../services/shiftService';
 import userService from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,8 +33,6 @@ const ShiftsPage = () => {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [statusFilter, setStatusFilter] = useState('');
 
-  const { register, handleSubmit, reset } = useForm();
-  const { register: registerEnd, handleSubmit: handleEndSubmit, reset: resetEnd } = useForm();
   const { register: registerHandover, handleSubmit: handleHandoverSubmit, reset: resetHandover } = useForm();
 
   const fetchData = useCallback(async () => {
@@ -75,32 +74,14 @@ const ShiftsPage = () => {
     fetchData();
   }, [fetchData]);
 
-  const startShift = async (data) => {
-    try {
-      await shiftService.startShift({
-        notes: data.notes
-      });
-      toast.success(t('shifts.shiftStarted'));
-      setShowStartModal(false);
-      reset({});
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.message || t('common.error'));
-    }
+  const handleShiftStarted = () => {
+    setShowStartModal(false);
+    fetchData();
   };
 
-  const endShift = async (data) => {
-    try {
-      await shiftService.endShift(activeShift.uuid, {
-        notes: data.notes
-      });
-      toast.success(t('shifts.shiftEnded'));
-      setShowEndModal(false);
-      resetEnd({});
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.message || t('common.error'));
-    }
+  const handleShiftEnded = () => {
+    setShowEndModal(false);
+    fetchData();
   };
 
   const handoverShift = async (data) => {
@@ -316,71 +297,19 @@ const ShiftsPage = () => {
       </Card>
 
       {/* Start Shift Modal */}
-      <Modal
+      <OpenShiftModal
         isOpen={showStartModal}
         onClose={() => setShowStartModal(false)}
-        title={t('shifts.startShift')}
-      >
-        <form onSubmit={handleSubmit(startShift)} className="space-y-4">
-          <p className="text-sm text-gray-500">{t('shifts.startShiftConfirm')}</p>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('common.notes')}
-            </label>
-            <textarea
-              {...register('notes')}
-              rows={3}
-              className="input"
-              placeholder={t('shifts.notesPlaceholder')}
-            />
-          </div>
-          <div className="flex justify-end space-x-3 rtl:space-x-reverse pt-4">
-            <Button variant="secondary" onClick={() => setShowStartModal(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit">
-              <PlayIcon className="h-5 w-5 mr-2" />
-              {t('shifts.startShift')}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        onSuccess={handleShiftStarted}
+      />
 
       {/* End Shift Modal */}
-      <Modal
+      <CloseShiftModal
         isOpen={showEndModal}
         onClose={() => setShowEndModal(false)}
-        title={t('shifts.endShift')}
-      >
-        <form onSubmit={handleEndSubmit(endShift)} className="space-y-4">
-          <p className="text-sm text-gray-500">{t('shifts.endShiftConfirm')}</p>
-          {activeShift && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p><strong>{t('shifts.duration')}:</strong> {formatDuration(activeShift.start_time)}</p>
-              <p><strong>{t('transactions.title')}:</strong> {activeShift.transaction_count || 0}</p>
-            </div>
-          )}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('common.notes')}
-            </label>
-            <textarea
-              {...registerEnd('notes')}
-              rows={3}
-              className="input"
-            />
-          </div>
-          <div className="flex justify-end space-x-3 rtl:space-x-reverse pt-4">
-            <Button variant="secondary" onClick={() => setShowEndModal(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" variant="danger">
-              <StopIcon className="h-5 w-5 mr-2" />
-              {t('shifts.endShift')}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        shift={activeShift}
+        onSuccess={handleShiftEnded}
+      />
 
       {/* Handover Modal */}
       <Modal

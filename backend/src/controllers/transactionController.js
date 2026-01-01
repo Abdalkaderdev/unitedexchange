@@ -386,6 +386,8 @@ const getTransaction = async (req, res, next) => {
           uuid: t.employee_uuid,
           fullName: t.employee_name
         },
+        paymentMethod: t.payment_method || 'cash',
+        referenceNumber: t.reference_number || null,
         cancellation: t.status === 'cancelled' ? {
           cancelledBy: t.cancelled_by_name,
           cancelledAt: t.cancelled_at,
@@ -393,6 +395,137 @@ const getTransaction = async (req, res, next) => {
         } : null,
         createdAt: t.created_at
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Update transaction (editable fields only)
+ * Cannot update cancelled transactions
+ */
+const updateTransaction = async (req, res, next) => {
+  try {
+    const { uuid } = req.params;
+    const {
+      customerName,
+      customerPhone,
+      customerIdType,
+      customerIdNumber,
+      notes,
+      paymentMethod,
+      referenceNumber
+    } = req.body;
+    const ipAddress = getClientIp(req);
+
+    // Get transaction
+    const [transactions] = await pool.query(
+      'SELECT * FROM transactions WHERE uuid = ? AND deleted_at IS NULL',
+      [uuid]
+    );
+
+    if (transactions.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Transaction not found.'
+      });
+    }
+
+    const transaction = transactions[0];
+
+    if (transaction.status === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot update a cancelled transaction.'
+      });
+    }
+
+    // Build update query dynamically
+    const updates = [];
+    const params = [];
+    const oldValues = {};
+    const newValues = {};
+
+    if (customerName !== undefined) {
+      updates.push('customer_name = ?');
+      params.push(customerName);
+      oldValues.customerName = transaction.customer_name;
+      newValues.customerName = customerName;
+    }
+
+    if (customerPhone !== undefined) {
+      updates.push('customer_phone = ?');
+      params.push(customerPhone || null);
+      oldValues.customerPhone = transaction.customer_phone;
+      newValues.customerPhone = customerPhone;
+    }
+
+    if (customerIdType !== undefined) {
+      updates.push('customer_id_type = ?');
+      params.push(customerIdType || null);
+      oldValues.customerIdType = transaction.customer_id_type;
+      newValues.customerIdType = customerIdType;
+    }
+
+    if (customerIdNumber !== undefined) {
+      updates.push('customer_id_number = ?');
+      params.push(customerIdNumber || null);
+      oldValues.customerIdNumber = transaction.customer_id_number;
+      newValues.customerIdNumber = customerIdNumber;
+    }
+
+    if (notes !== undefined) {
+      updates.push('notes = ?');
+      params.push(notes || null);
+      oldValues.notes = transaction.notes;
+      newValues.notes = notes;
+    }
+
+    if (paymentMethod !== undefined) {
+      updates.push('payment_method = ?');
+      params.push(paymentMethod);
+      oldValues.paymentMethod = transaction.payment_method;
+      newValues.paymentMethod = paymentMethod;
+    }
+
+    if (referenceNumber !== undefined) {
+      updates.push('reference_number = ?');
+      params.push(referenceNumber || null);
+      oldValues.referenceNumber = transaction.reference_number;
+      newValues.referenceNumber = referenceNumber;
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No fields to update.'
+      });
+    }
+
+    // Add uuid to params for WHERE clause
+    params.push(uuid);
+
+    await pool.query(
+      `UPDATE transactions SET ${updates.join(', ')} WHERE uuid = ?`,
+      params
+    );
+
+    // Log audit
+    await logAudit(
+      req.user.id,
+      'UPDATE',
+      'transactions',
+      transaction.id,
+      oldValues,
+      newValues,
+      ipAddress,
+      'info'
+    );
+
+    res.json({
+      success: true,
+      message: 'Transaction updated successfully.'
     });
   } catch (error) {
     next(error);
@@ -519,6 +652,7 @@ module.exports = {
   getTransactions,
   createTransaction,
   getTransaction,
+  updateTransaction,
   cancelTransaction,
   deleteTransaction
 };

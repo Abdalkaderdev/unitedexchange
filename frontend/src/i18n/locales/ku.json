@@ -3,17 +3,21 @@
     "appName": "یونایتید ئێکسچەینج",
     "loading": "چاوەڕوان بە...",
     "save": "پاشەکەوتکردن",
+    "saved": "بە سەرکەوتوویی پاشەکەوتکرا",
     "cancel": "پاشگەزبوونەوە",
     "delete": "سڕینەوە",
+    "deleted": "بە سەرکەوتوویی سڕایەوە",
     "edit": "دەستکاریکردن",
     "create": "دروستکردن",
     "search": "گەڕان",
     "filter": "فلتەر",
     "export": "هەناردەکردن",
     "refresh": "نوێکردنەوە",
+    "reset": "ڕیسێتکردن",
     "yes": "بەڵێ",
     "no": "نەخێر",
     "confirm": "دڵنیاکردنەوە",
+    "confirmDelete": "دڵنیایت لە سڕینەوە؟",
     "back": "گەڕانەوە",
     "next": "دواتر",
     "previous": "پێشتر",
@@ -24,7 +28,12 @@
     "all": "هەموو",
     "noData": "هیچ داتایەک نییە",
     "error": "هەڵەیەک ڕوویدا",
-    "success": "کارەکە سەرکەوتوو بوو"
+    "success": "کارەکە سەرکەوتوو بوو",
+    "close": "داخستن",
+    "notes": "تێبینیەکان",
+    "name": "ناو",
+    "view": "بینین",
+    "required": "ئەم خانەیە پێویستە"
   },
   "auth": {
     "login": "چوونەژوورەوە",
@@ -58,7 +67,8 @@
     "customers": "کڕیارەکان",
     "cashDrawers": "سندووقەکانی پارە",
     "shifts": "شیفتەکان",
-    "reportBuilder": "دروستکەری ڕاپۆرت"
+    "reportBuilder": "دروستکەری ڕاپۆرت",
+    "auditLogs": "تۆمارەکانی پشکنین"
   },
   "dashboard": {
     "title": "داشبۆرد",
@@ -109,7 +119,36 @@
     "cancelledBy": "هەڵوەشێنراوە لەلایەن",
     "cancelledAt": "کاتی هەڵوەشاندنەوە",
     "transactionCancelled": "مامەڵەکە بە سەرکەوتوویی هەڵوەشێنرایەوە",
-    "transactionDeleted": "مامەڵەکە بە سەرکەوتوویی سڕایەوە"
+    "transactionDeleted": "مامەڵەکە بە سەرکەوتوویی سڕایەوە",
+    "viewDetails": "بینینی وردەکاری",
+    "transactionNumber": "ژمارەی مامەڵە",
+    "transactionUpdated": "مامەڵەکە بە سەرکەوتوویی نوێکرایەوە",
+    "paymentMethod": "شێوازی پارەدان",
+    "referenceNumber": "ژمارەی سەرچاوە",
+    "enterReference": "ژمارەی سەرچاوە بنووسە",
+    "paymentDetails": "پارەدان و تێبینیەکان",
+    "paymentMethods": {
+      "cash": "نەقد",
+      "card": "کارت",
+      "bank_transfer": "گواستنەوەی بانکی",
+      "cheque": "چەک",
+      "other": "هی تر"
+    }
+  },
+  "receipts": {
+    "print": "چاپکردن",
+    "download": "داگرتن",
+    "email": "ناردنی پسوولە",
+    "emailTo": "ناردن بۆ",
+    "language": "زمان",
+    "sendReceipt": "ناردنی پسوولە",
+    "receiptSent": "پسوولەکە بە سەرکەوتوویی نێردرا",
+    "receiptSendError": "شکستی هێنا لە ناردنی پسوولە",
+    "printError": "شکستی هێنا لە چاپکردنی پسوولە",
+    "downloadSuccess": "پسوولەکە داگیرا",
+    "downloadError": "شکستی هێنا لە داگرتنی پسوولە",
+    "history": "مێژووی پسوولەکان",
+    "noHistory": "هیچ مێژوویەکی پسوولە نییە"
   },
   "currencies": {
     "title": "دراوەکان",
@@ -365,6 +404,48 @@
       "completed": "تەواوکراو",
       "handed_over": "پەسپۆڕکراو",
       "abandoned": "وازهێنراو"
+    },
+    "openingBalances": "باڵانسی کردنەوە",
+    "noOpeningBalances": "هیچ باڵانسی کردنەوەیەک دانەنراوە. کرتە لە زیادکردن بکە بۆ تۆمارکردنی پارەی دەستپێکردن.",
+    "countCash": "ژمارەکردنی پارە",
+    "expectedBalance": "چاوەڕوان",
+    "varianceDetected": "جیاوازی دۆزرایەوە",
+    "varianceWarning": "جیاوازی پارە دۆزرایەوە",
+    "varianceWarningMessage": "جیاوازییەک هەیە لەنێوان بڕی چاوەڕوان و ژمێردراو. تکایە ژمارەکەت بپشکنەوە یان تێبینی زیاد بکە بۆ ڕوونکردنەوەی جیاوازییەکە.",
+    "explainVariance": "تکایە جیاوازییەکە ڕوون بکەوە...",
+    "noBalancesToReconcile": "هیچ باڵانسێک نییە بۆ ڕاستکردنەوە"
+  },
+  "filters": {
+    "selectPreset": "پێشنیاز هەڵبژێرە...",
+    "savePreset": "پاشەکەوتکردنی پێشنیاز",
+    "presetNamePlaceholder": "پێشنیازی فلتەری من",
+    "setAsDefault": "دانانی وەکو پێشگریمان",
+    "minAmount": "کەمترین بڕ",
+    "maxAmount": "زۆرترین بڕ",
+    "presetSaved": "پێشنیازی فلتەر پاشەکەوتکرا",
+    "presetDeleted": "پێشنیازی فلتەر سڕایەوە"
+  },
+  "audit": {
+    "title": "تۆمارەکانی پشکنین",
+    "timestamp": "کات",
+    "user": "بەکارهێنەر",
+    "action": "کردار",
+    "resource": "سەرچاوە",
+    "resourceType": "جۆری سەرچاوە",
+    "severity": "ئاست",
+    "ipAddress": "ناونیشانی IP",
+    "oldValues": "بەهاکانی پێشتر",
+    "newValues": "بەهاکانی نوێ",
+    "logDetails": "وردەکاری تۆمار",
+    "searchPlaceholder": "گەڕان لە تۆمارەکان...",
+    "actions": {
+      "create": "دروستکردن",
+      "update": "نوێکردنەوە",
+      "delete": "سڕینەوە",
+      "login": "چوونەژوورەوە",
+      "logout": "چوونەدەرەوە",
+      "shiftStart": "دەستپێکردنی شیفت",
+      "shiftEnd": "کۆتاییهێنانی شیفت"
     }
   },
   "reportBuilder": {

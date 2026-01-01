@@ -3,17 +3,21 @@
     "appName": "United Exchange",
     "loading": "Loading...",
     "save": "Save",
+    "saved": "Saved successfully",
     "cancel": "Cancel",
     "delete": "Delete",
+    "deleted": "Deleted successfully",
     "edit": "Edit",
     "create": "Create",
     "search": "Search",
     "filter": "Filter",
     "export": "Export",
     "refresh": "Refresh",
+    "reset": "Reset",
     "yes": "Yes",
     "no": "No",
     "confirm": "Confirm",
+    "confirmDelete": "Are you sure you want to delete this?",
     "back": "Back",
     "next": "Next",
     "previous": "Previous",
@@ -24,7 +28,12 @@
     "all": "All",
     "noData": "No data available",
     "error": "An error occurred",
-    "success": "Operation successful"
+    "success": "Operation successful",
+    "close": "Close",
+    "notes": "Notes",
+    "name": "Name",
+    "view": "View",
+    "required": "This field is required"
   },
   "auth": {
     "login": "Login",
@@ -58,7 +67,8 @@
     "customers": "Customers",
     "cashDrawers": "Cash Drawers",
     "shifts": "Shifts",
-    "reportBuilder": "Report Builder"
+    "reportBuilder": "Report Builder",
+    "auditLogs": "Audit Logs"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -109,7 +119,36 @@
     "cancelledBy": "Cancelled By",
     "cancelledAt": "Cancelled At",
     "transactionCancelled": "Transaction cancelled successfully",
-    "transactionDeleted": "Transaction deleted successfully"
+    "transactionDeleted": "Transaction deleted successfully",
+    "viewDetails": "View Details",
+    "transactionNumber": "Transaction Number",
+    "transactionUpdated": "Transaction updated successfully",
+    "paymentMethod": "Payment Method",
+    "referenceNumber": "Reference Number",
+    "enterReference": "Enter reference number",
+    "paymentDetails": "Payment & Notes",
+    "paymentMethods": {
+      "cash": "Cash",
+      "card": "Card",
+      "bank_transfer": "Bank Transfer",
+      "cheque": "Cheque",
+      "other": "Other"
+    }
+  },
+  "receipts": {
+    "print": "Print",
+    "download": "Download",
+    "email": "Email Receipt",
+    "emailTo": "Email To",
+    "language": "Language",
+    "sendReceipt": "Send Receipt",
+    "receiptSent": "Receipt sent successfully",
+    "receiptSendError": "Failed to send receipt",
+    "printError": "Failed to print receipt",
+    "downloadSuccess": "Receipt downloaded",
+    "downloadError": "Failed to download receipt",
+    "history": "Receipt History",
+    "noHistory": "No receipt history"
   },
   "currencies": {
     "title": "Currencies",
@@ -365,6 +404,48 @@
       "completed": "Completed",
       "handed_over": "Handed Over",
       "abandoned": "Abandoned"
+    },
+    "openingBalances": "Opening Balances",
+    "noOpeningBalances": "No opening balances set. Click Add to enter your starting cash.",
+    "countCash": "Count Cash",
+    "expectedBalance": "Expected",
+    "varianceDetected": "Variance Detected",
+    "varianceWarning": "Cash Variance Detected",
+    "varianceWarningMessage": "There is a difference between expected and counted amounts. Please verify your count or provide notes explaining the variance.",
+    "explainVariance": "Please explain the variance...",
+    "noBalancesToReconcile": "No balances to reconcile"
+  },
+  "filters": {
+    "selectPreset": "Select preset...",
+    "savePreset": "Save Preset",
+    "presetNamePlaceholder": "My filter preset",
+    "setAsDefault": "Set as default",
+    "minAmount": "Min Amount",
+    "maxAmount": "Max Amount",
+    "presetSaved": "Filter preset saved",
+    "presetDeleted": "Filter preset deleted"
+  },
+  "audit": {
+    "title": "Audit Logs",
+    "timestamp": "Timestamp",
+    "user": "User",
+    "action": "Action",
+    "resource": "Resource",
+    "resourceType": "Resource Type",
+    "severity": "Severity",
+    "ipAddress": "IP Address",
+    "oldValues": "Previous Values",
+    "newValues": "New Values",
+    "logDetails": "Log Details",
+    "searchPlaceholder": "Search logs...",
+    "actions": {
+      "create": "Create",
+      "update": "Update",
+      "delete": "Delete",
+      "login": "Login",
+      "logout": "Logout",
+      "shiftStart": "Shift Start",
+      "shiftEnd": "Shift End"
     }
   },
   "reportBuilder": {

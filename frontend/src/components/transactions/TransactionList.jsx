@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import transactionService from '../../services/transactionService';
 import currencyService from '../../services/currencyService';
 import { Button, Input, Select, Table, Card, Pagination, ConfirmDialog } from '../common';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import { FunnelIcon, ArrowPathIcon, XCircleIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { FunnelIcon, ArrowPathIcon, XCircleIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
+import ReceiptActions from './ReceiptActions';
 
 const TransactionList = ({ onRefresh }) => {
   const { t } = useTranslation();
@@ -40,10 +42,8 @@ const TransactionList = ({ onRefresh }) => {
 
   const fetchCurrencies = async () => {
     try {
-      const response = await currencyService.getCurrencies(true);
-      if (response.success) {
-        setCurrencies(response.data);
-      }
+      const currencies = await currencyService.getCurrencies(true);
+      setCurrencies(currencies || []);
     } catch (error) {
       console.error('Failed to fetch currencies:', error);
     }
@@ -263,10 +263,24 @@ const TransactionList = ({ onRefresh }) => {
       )
     },
     {
+      header: t('receipts.print') || 'Receipt',
+      accessor: 'receipt',
+      render: (_, row) => (
+        <ReceiptActions transaction={row} size="sm" />
+      )
+    },
+    {
       header: t('common.actions'),
       accessor: 'actions',
       render: (_, row) => (
         <div className="flex items-center gap-2">
+          <Link
+            to={`/transactions/${row.uuid}`}
+            className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
+            title={t('transactions.viewDetails')}
+          >
+            <EyeIcon className="h-5 w-5" />
+          </Link>
           {row.status !== 'cancelled' && (
             <button
               onClick={() => handleCancelClick(row)}
@@ -410,6 +424,7 @@ const TransactionList = ({ onRefresh }) => {
         showReasonInput={false}
         loading={actionLoading}
       />
+
     </div>
   );
 };

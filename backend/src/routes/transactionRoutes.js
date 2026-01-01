@@ -232,6 +232,92 @@ router.get('/:uuid', transactionController.getTransaction);
 
 /**
  * @swagger
+ * /transactions/{uuid}:
+ *   put:
+ *     summary: Update transaction (editable fields only)
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: uuid
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               customerName:
+ *                 type: string
+ *               customerPhone:
+ *                 type: string
+ *               customerIdType:
+ *                 type: string
+ *                 enum: [passport, national_id, driver_license, other]
+ *               customerIdNumber:
+ *                 type: string
+ *               notes:
+ *                 type: string
+ *               paymentMethod:
+ *                 type: string
+ *                 enum: [cash, card, bank_transfer, cheque, other]
+ *               referenceNumber:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Transaction updated
+ *       400:
+ *         description: Cannot update cancelled transaction or validation error
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.put(
+  '/:uuid',
+  [
+    body('customerName')
+      .optional()
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage('Customer name must be 2-100 characters'),
+    body('customerPhone')
+      .optional()
+      .trim()
+      .isLength({ max: 20 })
+      .withMessage('Phone number must be max 20 characters'),
+    body('customerIdType')
+      .optional()
+      .isIn(['passport', 'national_id', 'driver_license', 'other', ''])
+      .withMessage('Invalid ID type'),
+    body('customerIdNumber')
+      .optional()
+      .trim()
+      .isLength({ max: 50 })
+      .withMessage('ID number must be max 50 characters'),
+    body('notes')
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('Notes must be max 500 characters'),
+    body('paymentMethod')
+      .optional()
+      .isIn(['cash', 'card', 'bank_transfer', 'cheque', 'other'])
+      .withMessage('Invalid payment method'),
+    body('referenceNumber')
+      .optional()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Reference number must be max 100 characters')
+  ],
+  validate,
+  transactionController.updateTransaction
+);
+
+/**
+ * @swagger
  * /transactions/{uuid}/receipt:
  *   get:
  *     summary: Get transaction receipt PDF
@@ -292,6 +378,149 @@ router.get(
   ],
   validate,
   receiptController.getReceipt
+);
+
+/**
+ * @swagger
+ * /transactions/{uuid}/receipt/email:
+ *   post:
+ *     summary: Email transaction receipt
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: uuid
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               type:
+ *                 type: string
+ *                 enum: [customer, internal]
+ *                 default: customer
+ *               lang:
+ *                 type: string
+ *                 enum: [en, ar, ku]
+ *                 default: en
+ *     responses:
+ *       200:
+ *         description: Receipt sent
+ *       400:
+ *         description: Invalid email
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.post(
+  '/:uuid/receipt/email',
+  [
+    body('email')
+      .isEmail()
+      .withMessage('Valid email address is required'),
+    body('type')
+      .optional()
+      .isIn(['customer', 'internal'])
+      .withMessage('Type must be "customer" or "internal"'),
+    body('lang')
+      .optional()
+      .isIn(['en', 'ar', 'ku'])
+      .withMessage('Language must be "en", "ar", or "ku"')
+  ],
+  validate,
+  receiptController.emailReceipt
+);
+
+/**
+ * @swagger
+ * /transactions/{uuid}/receipt/history:
+ *   get:
+ *     summary: Get receipt action history
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: uuid
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Receipt history
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get('/:uuid/receipt/history', receiptController.getReceiptHistory);
+
+/**
+ * @swagger
+ * /transactions/{uuid}/receipt/log:
+ *   post:
+ *     summary: Log a receipt action (view, download, print)
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: uuid
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - action
+ *             properties:
+ *               action:
+ *                 type: string
+ *                 enum: [view, download, print]
+ *               type:
+ *                 type: string
+ *                 enum: [customer, internal]
+ *                 default: customer
+ *               lang:
+ *                 type: string
+ *                 enum: [en, ar, ku]
+ *                 default: en
+ *     responses:
+ *       200:
+ *         description: Action logged
+ */
+router.post(
+  '/:uuid/receipt/log',
+  [
+    body('action')
+      .isIn(['view', 'download', 'print'])
+      .withMessage('Action must be "view", "download", or "print"'),
+    body('type')
+      .optional()
+      .isIn(['customer', 'internal'])
+      .withMessage('Type must be "customer" or "internal"'),
+    body('lang')
+      .optional()
+      .isIn(['en', 'ar', 'ku'])
+      .withMessage('Language must be "en", "ar", or "ku"')
+  ],
+  validate,
+  receiptController.logReceiptAction
 );
 
 /**

@@ -37,6 +37,11 @@ const shiftService = {
   abandonShift: async (uuid, reason = '') => {
     const response = await api.post(`/shifts/${uuid}/abandon`, { reason });
     return response.data;
+  },
+
+  getExpectedBalances: async (uuid) => {
+    const response = await api.get(`/shifts/${uuid}/expected-balances`);
+    return response.data;
   }
 };
 

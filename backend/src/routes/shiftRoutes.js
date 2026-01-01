@@ -192,6 +192,29 @@ router.get('/:uuid', shiftController.getShiftDetails);
 
 /**
  * @swagger
+ * /shifts/{uuid}/expected-balances:
+ *   get:
+ *     summary: Get expected balances for an active shift
+ *     tags: [Shifts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: uuid
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Expected balances calculated from transactions and drawer operations
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get('/:uuid/expected-balances', shiftController.getExpectedBalances);
+
+/**
+ * @swagger
  * /shifts/{uuid}/end:
  *   post:
  *     summary: End a shift

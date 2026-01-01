@@ -3,17 +3,21 @@
     "appName": "يونايتد للصرافة",
     "loading": "جاري التحميل...",
     "save": "حفظ",
+    "saved": "تم الحفظ بنجاح",
     "cancel": "إلغاء",
     "delete": "حذف",
+    "deleted": "تم الحذف بنجاح",
     "edit": "تعديل",
     "create": "إنشاء",
     "search": "بحث",
     "filter": "تصفية",
     "export": "تصدير",
     "refresh": "تحديث",
+    "reset": "إعادة تعيين",
     "yes": "نعم",
     "no": "لا",
     "confirm": "تأكيد",
+    "confirmDelete": "هل أنت متأكد من الحذف؟",
     "back": "رجوع",
     "next": "التالي",
     "previous": "السابق",
@@ -24,7 +28,12 @@
     "all": "الكل",
     "noData": "لا توجد بيانات",
     "error": "حدث خطأ",
-    "success": "تمت العملية بنجاح"
+    "success": "تمت العملية بنجاح",
+    "close": "إغلاق",
+    "notes": "ملاحظات",
+    "name": "الاسم",
+    "view": "عرض",
+    "required": "هذا الحقل مطلوب"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -58,7 +67,8 @@
     "customers": "العملاء",
     "cashDrawers": "صناديق النقد",
     "shifts": "المناوبات",
-    "reportBuilder": "منشئ التقارير"
+    "reportBuilder": "منشئ التقارير",
+    "auditLogs": "سجل المراجعة"
   },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -109,7 +119,36 @@
     "cancelledBy": "ألغيت بواسطة",
     "cancelledAt": "تاريخ الإلغاء",
     "transactionCancelled": "تم إلغاء المعاملة بنجاح",
-    "transactionDeleted": "تم حذف المعاملة بنجاح"
+    "transactionDeleted": "تم حذف المعاملة بنجاح",
+    "viewDetails": "عرض التفاصيل",
+    "transactionNumber": "رقم المعاملة",
+    "transactionUpdated": "تم تحديث المعاملة بنجاح",
+    "paymentMethod": "طريقة الدفع",
+    "referenceNumber": "رقم المرجع",
+    "enterReference": "أدخل رقم المرجع",
+    "paymentDetails": "الدفع والملاحظات",
+    "paymentMethods": {
+      "cash": "نقداً",
+      "card": "بطاقة",
+      "bank_transfer": "تحويل بنكي",
+      "cheque": "شيك",
+      "other": "أخرى"
+    }
+  },
+  "receipts": {
+    "print": "طباعة",
+    "download": "تحميل",
+    "email": "إرسال الإيصال",
+    "emailTo": "إرسال إلى",
+    "language": "اللغة",
+    "sendReceipt": "إرسال الإيصال",
+    "receiptSent": "تم إرسال الإيصال بنجاح",
+    "receiptSendError": "فشل في إرسال الإيصال",
+    "printError": "فشل في طباعة الإيصال",
+    "downloadSuccess": "تم تحميل الإيصال",
+    "downloadError": "فشل في تحميل الإيصال",
+    "history": "سجل الإيصالات",
+    "noHistory": "لا يوجد سجل إيصالات"
   },
   "currencies": {
     "title": "العملات",
@@ -365,6 +404,48 @@
       "completed": "مكتملة",
       "handed_over": "تم التسليم",
       "abandoned": "ملغاة"
+    },
+    "openingBalances": "أرصدة الافتتاح",
+    "noOpeningBalances": "لم يتم تعيين أرصدة افتتاحية. انقر على إضافة لإدخال النقد البدء.",
+    "countCash": "عد النقد",
+    "expectedBalance": "المتوقع",
+    "varianceDetected": "تم اكتشاف فرق",
+    "varianceWarning": "تم اكتشاف فرق في النقد",
+    "varianceWarningMessage": "يوجد فرق بين المبالغ المتوقعة والمحسوبة. يرجى التحقق من العد أو تقديم ملاحظات توضح الفرق.",
+    "explainVariance": "يرجى توضيح الفرق...",
+    "noBalancesToReconcile": "لا توجد أرصدة للمطابقة"
+  },
+  "filters": {
+    "selectPreset": "اختر قالب...",
+    "savePreset": "حفظ القالب",
+    "presetNamePlaceholder": "قالب التصفية الخاص بي",
+    "setAsDefault": "تعيين كافتراضي",
+    "minAmount": "الحد الأدنى",
+    "maxAmount": "الحد الأقصى",
+    "presetSaved": "تم حفظ قالب التصفية",
+    "presetDeleted": "تم حذف قالب التصفية"
+  },
+  "audit": {
+    "title": "سجل المراجعة",
+    "timestamp": "الوقت",
+    "user": "المستخدم",
+    "action": "الإجراء",
+    "resource": "المورد",
+    "resourceType": "نوع المورد",
+    "severity": "الخطورة",
+    "ipAddress": "عنوان IP",
+    "oldValues": "القيم السابقة",
+    "newValues": "القيم الجديدة",
+    "logDetails": "تفاصيل السجل",
+    "searchPlaceholder": "البحث في السجلات...",
+    "actions": {
+      "create": "إنشاء",
+      "update": "تحديث",
+      "delete": "حذف",
+      "login": "تسجيل دخول",
+      "logout": "تسجيل خروج",
+      "shiftStart": "بدء المناوبة",
+      "shiftEnd": "إنهاء المناوبة"
     }
   },
   "reportBuilder": {

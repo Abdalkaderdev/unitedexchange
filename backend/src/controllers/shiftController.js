@@ -99,7 +99,139 @@ const startShift = async (req, res, next) => {
 };
 
 /**
- * End a shift
+ * Calculate expected balances for a shift
+ * Opening balance + currency_in amounts - currency_out amounts + deposits - withdrawals
+ */
+const calculateExpectedBalances = async (shiftId, drawerId) => {
+  const expectedBalances = {};
+
+  // Get opening balances
+  const [openingBalances] = await pool.query(
+    'SELECT currency_id, opening_balance FROM shift_balances WHERE shift_id = ?',
+    [shiftId]
+  );
+
+  for (const row of openingBalances) {
+    expectedBalances[row.currency_id] = parseDecimal(row.opening_balance);
+  }
+
+  // Get transaction flows (currency_in adds, currency_out subtracts from drawer)
+  const [transactionFlows] = await pool.query(`
+    SELECT
+      currency_in_id,
+      currency_out_id,
+      SUM(amount_in) as total_in,
+      SUM(amount_out) as total_out
+    FROM transactions
+    WHERE shift_id = ? AND status = 'completed' AND deleted_at IS NULL
+    GROUP BY currency_in_id, currency_out_id
+  `, [shiftId]);
+
+  for (const flow of transactionFlows) {
+    // Currency coming IN (customer gives us) - adds to our drawer
+    if (!expectedBalances[flow.currency_in_id]) {
+      expectedBalances[flow.currency_in_id] = 0;
+    }
+    expectedBalances[flow.currency_in_id] += parseDecimal(flow.total_in);
+
+    // Currency going OUT (we give customer) - subtracts from our drawer
+    if (!expectedBalances[flow.currency_out_id]) {
+      expectedBalances[flow.currency_out_id] = 0;
+    }
+    expectedBalances[flow.currency_out_id] -= parseDecimal(flow.total_out);
+  }
+
+  // Get drawer deposits/withdrawals if drawer is assigned
+  if (drawerId) {
+    const [drawerTransactions] = await pool.query(`
+      SELECT
+        currency_id,
+        type,
+        SUM(amount) as total
+      FROM cash_drawer_transactions
+      WHERE drawer_id = ? AND type IN ('deposit', 'withdrawal', 'adjustment')
+        AND created_at >= (SELECT start_time FROM shifts WHERE id = ?)
+      GROUP BY currency_id, type
+    `, [drawerId, shiftId]);
+
+    for (const tx of drawerTransactions) {
+      if (!expectedBalances[tx.currency_id]) {
+        expectedBalances[tx.currency_id] = 0;
+      }
+      if (tx.type === 'deposit') {
+        expectedBalances[tx.currency_id] += parseDecimal(tx.total);
+      } else if (tx.type === 'withdrawal') {
+        expectedBalances[tx.currency_id] -= parseDecimal(tx.total);
+      } else if (tx.type === 'adjustment') {
+        // Adjustments can be positive or negative
+        expectedBalances[tx.currency_id] += parseDecimal(tx.total);
+      }
+    }
+  }
+
+  return expectedBalances;
+};
+
+/**
+ * Get expected balances for current shift
+ */
+const getExpectedBalances = async (req, res, next) => {
+  try {
+    const { uuid } = req.params;
+
+    const [shifts] = await pool.query(
+      'SELECT * FROM shifts WHERE uuid = ? AND status = "active"',
+      [uuid]
+    );
+
+    if (shifts.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Active shift not found.'
+      });
+    }
+
+    const shift = shifts[0];
+    const expectedBalances = await calculateExpectedBalances(shift.id, shift.drawer_id);
+
+    // Get currency details
+    const currencyIds = Object.keys(expectedBalances);
+    if (currencyIds.length === 0) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+
+    const [currencies] = await pool.query(
+      'SELECT id, code, symbol, name FROM currencies WHERE id IN (?)',
+      [currencyIds]
+    );
+
+    const currencyMap = {};
+    for (const c of currencies) {
+      currencyMap[c.id] = c;
+    }
+
+    const result = currencyIds.map(currencyId => ({
+      currencyId: parseInt(currencyId),
+      currencyCode: currencyMap[currencyId]?.code,
+      currencySymbol: currencyMap[currencyId]?.symbol,
+      currencyName: currencyMap[currencyId]?.name,
+      expectedBalance: expectedBalances[currencyId]
+    }));
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * End a shift with reconciliation
  */
 const endShift = async (req, res, next) => {
   try {
@@ -132,51 +264,73 @@ const endShift = async (req, res, next) => {
       });
     }
 
-    // Calculate expected closing balances based on transactions
-    const [transactionSummary] = await pool.query(`
-      SELECT
-        currency_in_id,
-        currency_out_id,
-        SUM(amount_in) as total_in,
-        SUM(amount_out) as total_out,
-        COUNT(*) as transaction_count,
-        SUM(profit) as total_profit,
-        SUM(commission) as total_commission
-      FROM transactions
-      WHERE shift_id = ? AND status = 'completed' AND deleted_at IS NULL
-      GROUP BY currency_in_id, currency_out_id
-    `, [shift.id]);
+    // Calculate expected balances
+    const expectedBalances = await calculateExpectedBalances(shift.id, shift.drawer_id);
 
-    // Update shift balances with closing values
+    // Process closing balances and create reconciliation records
+    const reconciliationResults = [];
+
     if (closingBalances && Array.isArray(closingBalances)) {
       for (const balance of closingBalances) {
-        // Get opening balance
-        const [openingRows] = await pool.query(
-          'SELECT opening_balance FROM shift_balances WHERE shift_id = ? AND currency_id = ?',
-          [shift.id, balance.currencyId]
+        const currencyId = balance.currencyId;
+        const actualBalance = parseDecimal(balance.amount);
+        const expectedBalance = expectedBalances[currencyId] || 0;
+        const difference = actualBalance - expectedBalance;
+
+        // Determine status
+        let status = 'balanced';
+        if (difference > 0.01) status = 'over';
+        else if (difference < -0.01) status = 'short';
+
+        // Update or insert shift balance
+        const [existingBalance] = await pool.query(
+          'SELECT id FROM shift_balances WHERE shift_id = ? AND currency_id = ?',
+          [shift.id, currencyId]
         );
 
-        const openingBalance = openingRows.length > 0 ? parseDecimal(openingRows[0].opening_balance) : 0;
-        const closingBalance = parseDecimal(balance.amount);
-
-        // Calculate expected (simplified - actual would need to track all in/out)
-        const expectedClosing = openingBalance; // Would add transaction flows here
-        const difference = closingBalance - expectedClosing;
-
-        if (openingRows.length > 0) {
+        if (existingBalance.length > 0) {
           await pool.query(
             `UPDATE shift_balances
              SET closing_balance = ?, expected_closing = ?, difference = ?
              WHERE shift_id = ? AND currency_id = ?`,
-            [closingBalance, expectedClosing, difference, shift.id, balance.currencyId]
+            [actualBalance, expectedBalance, difference, shift.id, currencyId]
           );
         } else {
           await pool.query(
             `INSERT INTO shift_balances (shift_id, currency_id, opening_balance, closing_balance, expected_closing, difference)
              VALUES (?, ?, 0, ?, ?, ?)`,
-            [shift.id, balance.currencyId, closingBalance, expectedClosing, difference]
+            [shift.id, currencyId, actualBalance, expectedBalance, difference]
           );
         }
+
+        // Create reconciliation record if drawer is assigned
+        if (shift.drawer_id) {
+          const reconciliationUuid = uuidv4();
+          await pool.query(
+            `INSERT INTO cash_drawer_reconciliations
+             (uuid, drawer_id, currency_id, expected_balance, actual_balance, difference, status, notes, reconciled_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              reconciliationUuid,
+              shift.drawer_id,
+              currencyId,
+              expectedBalance,
+              actualBalance,
+              difference,
+              status,
+              `Shift end reconciliation - Shift: ${uuid}`,
+              req.user.id
+            ]
+          );
+        }
+
+        reconciliationResults.push({
+          currencyId,
+          expected: expectedBalance,
+          actual: actualBalance,
+          difference,
+          status
+        });
       }
     }
 
@@ -222,15 +376,18 @@ const endShift = async (req, res, next) => {
       [notes || null, shift.id]
     );
 
+    // Check for significant variances
+    const hasVariance = reconciliationResults.some(r => Math.abs(r.difference) > 0.01);
+
     await logAudit(
       req.user.id,
       'SHIFT_END',
       'shifts',
       shift.id,
       { status: 'active' },
-      { status: 'completed', closingBalances },
+      { status: 'completed', closingBalances, reconciliation: reconciliationResults, hasVariance },
       ipAddress,
-      'info'
+      hasVariance ? 'warning' : 'info'
     );
 
     res.json({
@@ -244,7 +401,9 @@ const endShift = async (req, res, next) => {
           totalProfit: parseDecimal(summaryStats[0].total_profit),
           totalCommission: parseDecimal(summaryStats[0].total_commission),
           cancelledTransactions: cancelledCount[0].count
-        }
+        },
+        reconciliation: reconciliationResults,
+        hasVariance
       }
     });
   } catch (error) {
@@ -710,6 +869,7 @@ module.exports = {
   getActiveShift,
   getShifts,
   getShiftDetails,
+  getExpectedBalances,
   handoverShift,
   abandonShift
 };
