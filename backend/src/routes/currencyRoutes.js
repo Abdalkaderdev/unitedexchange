@@ -246,6 +246,56 @@ router.post(
 
 /**
  * @swagger
+ * /currencies/rates/bulk:
+ *   put:
+ *     summary: Bulk update exchange rates (admin only)
+ *     tags: [Currencies]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - rates
+ *             properties:
+ *               rates:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     fromCurrencyId:
+ *                       type: integer
+ *                     toCurrencyId:
+ *                       type: integer
+ *                     buyRate:
+ *                       type: number
+ *                     sellRate:
+ *                       type: number
+ *     responses:
+ *       200:
+ *         description: Rates updated
+ *       400:
+ *         description: Validation error
+ */
+router.put(
+  '/rates/bulk',
+  authorize('admin'),
+  [
+    body('rates').isArray({ min: 1, max: 50 }).withMessage('Rates array is required (max 50)'),
+    body('rates.*.fromCurrencyId').isInt({ min: 1 }).withMessage('Valid from currency ID is required'),
+    body('rates.*.toCurrencyId').isInt({ min: 1 }).withMessage('Valid to currency ID is required'),
+    body('rates.*.buyRate').isFloat({ min: 0.000001 }).withMessage('Buy rate must be positive'),
+    body('rates.*.sellRate').isFloat({ min: 0.000001 }).withMessage('Sell rate must be positive')
+  ],
+  validate,
+  currencyController.bulkUpdateRates
+);
+
+/**
+ * @swagger
  * /currencies/rates/history:
  *   get:
  *     summary: Get exchange rate history

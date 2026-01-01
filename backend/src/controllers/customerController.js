@@ -748,6 +748,152 @@ const getCustomerStats = async (req, res, next) => {
 };
 
 /**
+ * Bulk update customers (block/unblock/VIP status)
+ */
+const bulkUpdateCustomers = async (req, res, next) => {
+  const connection = await pool.getConnection();
+  try {
+    const { uuids, action, reason } = req.body;
+    const ipAddress = getClientIp(req);
+
+    if (!Array.isArray(uuids) || uuids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Customer UUIDs array is required.'
+      });
+    }
+
+    if (uuids.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Maximum 100 customers can be updated at once.'
+      });
+    }
+
+    const validActions = ['block', 'unblock', 'setVip', 'removeVip'];
+    if (!validActions.includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid action. Valid actions: ${validActions.join(', ')}`
+      });
+    }
+
+    await connection.beginTransaction();
+
+    // Get customers
+    const placeholders = uuids.map(() => '?').join(',');
+    const [customers] = await connection.query(
+      `SELECT id, uuid, full_name, is_blocked, is_vip FROM customers WHERE uuid IN (${placeholders})`,
+      uuids
+    );
+
+    if (customers.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'No customers found with the provided UUIDs.'
+      });
+    }
+
+    const results = [];
+    const errors = [];
+
+    for (const customer of customers) {
+      try {
+        let updateQuery = '';
+        let updateParams = [];
+        let oldValues = {};
+        let newValues = {};
+
+        switch (action) {
+          case 'block':
+            if (customer.is_blocked) {
+              errors.push({ uuid: customer.uuid, error: 'Already blocked' });
+              continue;
+            }
+            updateQuery = 'UPDATE customers SET is_blocked = TRUE, block_reason = ? WHERE id = ?';
+            updateParams = [reason || null, customer.id];
+            oldValues = { isBlocked: false };
+            newValues = { isBlocked: true, blockReason: reason };
+            break;
+
+          case 'unblock':
+            if (!customer.is_blocked) {
+              errors.push({ uuid: customer.uuid, error: 'Not blocked' });
+              continue;
+            }
+            updateQuery = 'UPDATE customers SET is_blocked = FALSE, block_reason = NULL WHERE id = ?';
+            updateParams = [customer.id];
+            oldValues = { isBlocked: true };
+            newValues = { isBlocked: false };
+            break;
+
+          case 'setVip':
+            if (customer.is_vip) {
+              errors.push({ uuid: customer.uuid, error: 'Already VIP' });
+              continue;
+            }
+            updateQuery = 'UPDATE customers SET is_vip = TRUE WHERE id = ?';
+            updateParams = [customer.id];
+            oldValues = { isVip: false };
+            newValues = { isVip: true };
+            break;
+
+          case 'removeVip':
+            if (!customer.is_vip) {
+              errors.push({ uuid: customer.uuid, error: 'Not VIP' });
+              continue;
+            }
+            updateQuery = 'UPDATE customers SET is_vip = FALSE WHERE id = ?';
+            updateParams = [customer.id];
+            oldValues = { isVip: true };
+            newValues = { isVip: false };
+            break;
+        }
+
+        await connection.query(updateQuery, updateParams);
+
+        results.push({
+          uuid: customer.uuid,
+          fullName: customer.full_name,
+          action
+        });
+      } catch (err) {
+        errors.push({ uuid: customer.uuid, error: err.message });
+      }
+    }
+
+    await connection.commit();
+
+    // Log bulk audit
+    await logAudit(
+      req.user.id,
+      'BULK_UPDATE',
+      'customers',
+      null,
+      null,
+      { action, count: results.length, customers: results.map(r => r.uuid) },
+      ipAddress,
+      action === 'block' ? 'warning' : 'info'
+    );
+
+    res.json({
+      success: true,
+      message: `${results.length} customer(s) updated successfully.`,
+      data: {
+        updated: results,
+        errors: errors.length > 0 ? errors : undefined
+      }
+    });
+  } catch (error) {
+    await connection.rollback();
+    next(error);
+  } finally {
+    connection.release();
+  }
+};
+
+/**
  * Delete customer (soft delete or check for transactions)
  */
 const deleteCustomer = async (req, res, next) => {
@@ -815,6 +961,7 @@ module.exports = {
   updateCustomer,
   blockCustomer,
   unblockCustomer,
+  bulkUpdateCustomers,
   getCustomerTransactions,
   getCustomerStats,
   deleteCustomer

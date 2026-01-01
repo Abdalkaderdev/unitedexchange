@@ -300,6 +300,140 @@ const setExchangeRate = async (req, res, next) => {
 };
 
 /**
+ * Bulk update exchange rates
+ * Accepts an array of rate updates and processes them in a transaction
+ */
+const bulkUpdateRates = async (req, res, next) => {
+  const connection = await pool.getConnection();
+  try {
+    const { rates } = req.body;
+    const ipAddress = getClientIp(req);
+
+    if (!Array.isArray(rates) || rates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rates array is required and cannot be empty.'
+      });
+    }
+
+    if (rates.length > 50) {
+      return res.status(400).json({
+        success: false,
+        message: 'Maximum 50 rates can be updated at once.'
+      });
+    }
+
+    await connection.beginTransaction();
+
+    const results = [];
+    const errors = [];
+
+    for (const rate of rates) {
+      const { fromCurrencyId, toCurrencyId, buyRate, sellRate } = rate;
+
+      if (!fromCurrencyId || !toCurrencyId || buyRate === undefined || sellRate === undefined) {
+        errors.push({
+          fromCurrencyId,
+          toCurrencyId,
+          error: 'Missing required fields'
+        });
+        continue;
+      }
+
+      const parsedBuyRate = parseDecimal(buyRate, 6);
+      const parsedSellRate = parseDecimal(sellRate, 6);
+
+      // Check if rate exists
+      const [existing] = await connection.query(
+        'SELECT id, buy_rate, sell_rate FROM exchange_rates WHERE from_currency_id = ? AND to_currency_id = ?',
+        [fromCurrencyId, toCurrencyId]
+      );
+
+      if (existing.length > 0) {
+        const oldBuyRate = parseDecimal(existing[0].buy_rate, 6);
+        const oldSellRate = parseDecimal(existing[0].sell_rate, 6);
+
+        // Log rate change to history
+        await connection.query(
+          `INSERT INTO exchange_rate_history
+            (exchange_rate_id, from_currency_id, to_currency_id, old_buy_rate, new_buy_rate,
+             old_sell_rate, new_sell_rate, changed_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [existing[0].id, fromCurrencyId, toCurrencyId, oldBuyRate, parsedBuyRate, oldSellRate, parsedSellRate, req.user.id]
+        );
+
+        // Update rate
+        await connection.query(
+          'UPDATE exchange_rates SET buy_rate = ?, sell_rate = ?, updated_by = ? WHERE id = ?',
+          [parsedBuyRate, parsedSellRate, req.user.id, existing[0].id]
+        );
+
+        results.push({
+          id: existing[0].id,
+          fromCurrencyId,
+          toCurrencyId,
+          buyRate: parsedBuyRate,
+          sellRate: parsedSellRate,
+          action: 'updated'
+        });
+      } else {
+        // Insert new rate
+        const [insertResult] = await connection.query(
+          'INSERT INTO exchange_rates (from_currency_id, to_currency_id, buy_rate, sell_rate, updated_by) VALUES (?, ?, ?, ?, ?)',
+          [fromCurrencyId, toCurrencyId, parsedBuyRate, parsedSellRate, req.user.id]
+        );
+
+        // Log initial rate to history
+        await connection.query(
+          `INSERT INTO exchange_rate_history
+            (exchange_rate_id, from_currency_id, to_currency_id, old_buy_rate, new_buy_rate,
+             old_sell_rate, new_sell_rate, changed_by)
+           VALUES (?, ?, ?, NULL, ?, NULL, ?, ?)`,
+          [insertResult.insertId, fromCurrencyId, toCurrencyId, parsedBuyRate, parsedSellRate, req.user.id]
+        );
+
+        results.push({
+          id: insertResult.insertId,
+          fromCurrencyId,
+          toCurrencyId,
+          buyRate: parsedBuyRate,
+          sellRate: parsedSellRate,
+          action: 'created'
+        });
+      }
+    }
+
+    await connection.commit();
+
+    // Log bulk audit
+    await logAudit(
+      req.user.id,
+      'BULK_UPDATE',
+      'exchange_rates',
+      null,
+      null,
+      { count: results.length, rates: results },
+      ipAddress,
+      'warning'
+    );
+
+    res.json({
+      success: true,
+      message: `${results.length} rate(s) updated successfully.`,
+      data: {
+        updated: results,
+        errors: errors.length > 0 ? errors : undefined
+      }
+    });
+  } catch (error) {
+    await connection.rollback();
+    next(error);
+  } finally {
+    connection.release();
+  }
+};
+
+/**
  * Get exchange rate history for a currency pair
  */
 const getExchangeRateHistory = async (req, res, next) => {
@@ -371,5 +505,6 @@ module.exports = {
   updateCurrency,
   getExchangeRates,
   setExchangeRate,
+  bulkUpdateRates,
   getExchangeRateHistory
 };

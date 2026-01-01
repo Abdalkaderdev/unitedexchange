@@ -89,6 +89,28 @@ router.get(
 
 /**
  * @swagger
+ * /customers/bulk/update:
+ *   put:
+ *     summary: Bulk update customers (block/unblock/VIP) (admin only)
+ *     tags: [Customers]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.put(
+  '/bulk/update',
+  authorize('admin'),
+  [
+    body('uuids').isArray({ min: 1, max: 100 }).withMessage('UUIDs array is required (max 100)'),
+    body('uuids.*').isUUID().withMessage('Each UUID must be valid'),
+    body('action').isIn(['block', 'unblock', 'setVip', 'removeVip']).withMessage('Invalid action'),
+    body('reason').optional().trim().isLength({ max: 255 }).withMessage('Reason must be max 255 characters')
+  ],
+  validate,
+  customerController.bulkUpdateCustomers
+);
+
+/**
+ * @swagger
  * /customers/{uuid}:
  *   get:
  *     summary: Get single customer
