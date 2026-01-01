@@ -94,6 +94,10 @@ const migrations = [
 const alterStatements = [
   // Add low_balance_alert to cash_drawers if missing
   `ALTER TABLE cash_drawers ADD COLUMN low_balance_alert DECIMAL(20,4) DEFAULT 0`,
+  // Add created_by to cash_drawers if missing
+  `ALTER TABLE cash_drawers ADD COLUMN created_by INT UNSIGNED NULL`,
+  // Add created_by to customers if missing
+  `ALTER TABLE customers ADD COLUMN created_by INT UNSIGNED NULL`,
   // Add permissions tables
   `CREATE TABLE IF NOT EXISTS permissions (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
