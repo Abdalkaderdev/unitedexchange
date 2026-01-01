@@ -198,7 +198,12 @@
     "bulkUpdateDescription": "Edit multiple exchange rates at once. Only changed rates will be updated.",
     "noChanges": "No changes to save",
     "bulkUpdateSuccess": "Rates updated successfully",
-    "ratesWillBeUpdated": "rate(s) will be updated"
+    "ratesWillBeUpdated": "rate(s) will be updated",
+    "fetchError": "Failed to fetch currencies",
+    "fetchRatesError": "Failed to fetch exchange rates",
+    "updateError": "Failed to update currency status",
+    "activateSuccess": "Currency activated successfully",
+    "deactivateSuccess": "Currency deactivated successfully"
   },
   "reports": {
     "title": "Reports",

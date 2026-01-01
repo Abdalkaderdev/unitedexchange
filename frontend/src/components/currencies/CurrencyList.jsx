@@ -28,7 +28,7 @@ const CurrencyList = ({ currencies, loading, onEdit, onToggleStatus, isAdmin }) 
     },
     {
       header: t('currencies.status'),
-      accessor: 'is_active',
+      accessor: 'isActive',
       render: (value) => (
         <span
           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -57,12 +57,12 @@ const CurrencyList = ({ currencies, loading, onEdit, onToggleStatus, isAdmin }) 
                 <PencilIcon className="h-4 w-4" />
               </Button>
               <Button
-                variant={row.is_active ? 'danger' : 'primary'}
+                variant={row.isActive ? 'danger' : 'primary'}
                 size="sm"
                 onClick={() => onToggleStatus(row)}
-                title={row.is_active ? t('currencies.deactivate') : t('currencies.activate')}
+                title={row.isActive ? t('currencies.deactivate') : t('currencies.activate')}
               >
-                {row.is_active ? (
+                {row.isActive ? (
                   <XCircleIcon className="h-4 w-4" />
                 ) : (
                   <CheckCircleIcon className="h-4 w-4" />

@@ -198,7 +198,12 @@
     "bulkUpdateDescription": "تعديل أسعار صرف متعددة مرة واحدة. سيتم تحديث الأسعار المتغيرة فقط.",
     "noChanges": "لا توجد تغييرات للحفظ",
     "bulkUpdateSuccess": "تم تحديث الأسعار بنجاح",
-    "ratesWillBeUpdated": "سعر سيتم تحديثه"
+    "ratesWillBeUpdated": "سعر سيتم تحديثه",
+    "fetchError": "فشل في جلب العملات",
+    "fetchRatesError": "فشل في جلب أسعار الصرف",
+    "updateError": "فشل في تحديث حالة العملة",
+    "activateSuccess": "تم تفعيل العملة بنجاح",
+    "deactivateSuccess": "تم تعطيل العملة بنجاح"
   },
   "reports": {
     "title": "التقارير",

@@ -56,7 +56,7 @@ const ExchangeRateForm = ({
   };
 
   const currencyOptions = currencies
-    .filter(c => c.is_active)
+    .filter(c => c.isActive)
     .map(c => ({
       value: c.id.toString(),
       label: `${c.code} - ${c.name}`

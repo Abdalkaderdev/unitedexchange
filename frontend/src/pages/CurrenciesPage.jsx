@@ -82,12 +82,12 @@ const CurrenciesPage = () => {
   const handleToggleStatus = async (currency) => {
     try {
       await currencyService.updateCurrency(currency.id, {
-        is_active: !currency.is_active
+        isActive: !currency.isActive
       });
       toast.success(
-        currency.is_active
-          ? t('currencies.deactivated')
-          : t('currencies.activated')
+        currency.isActive
+          ? t('currencies.deactivateSuccess')
+          : t('currencies.activateSuccess')
       );
       fetchCurrencies();
     } catch (error) {

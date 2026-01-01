@@ -62,11 +62,20 @@ const DailyReport = () => {
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const data = await reportService.getDailyReport(
+      const response = await reportService.getDailyReport(
         filters.date,
         filters.employeeId || undefined
       );
-      setReport(data);
+      // Extract nested data from API response
+      const data = response.data || response;
+      setReport({
+        transactions: data.transactions || [],
+        totalTransactions: data.summary?.totalTransactions || 0,
+        totalProfit: data.summary?.totalProfit || 0,
+        totalCommission: data.summary?.totalCommission || 0,
+        byCurrency: data.summary?.byCurrency || [],
+        baseCurrency: 'USD'
+      });
     } catch (error) {
       console.error('Failed to fetch daily report:', error);
     } finally {
