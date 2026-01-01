@@ -90,6 +90,30 @@ const migrations = [
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
 ];
 
+// Additional alter statements for schema updates
+const alterStatements = [
+  // Add low_balance_alert to cash_drawers if missing
+  `ALTER TABLE cash_drawers ADD COLUMN low_balance_alert DECIMAL(20,4) DEFAULT 0`,
+  // Add permissions tables
+  `CREATE TABLE IF NOT EXISTS permissions (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    description VARCHAR(255) NULL,
+    category VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_permissions_category (category)
+  )`,
+  `CREATE TABLE IF NOT EXISTS role_permissions (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    role ENUM('admin', 'manager', 'teller', 'viewer') NOT NULL,
+    permission_id INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_role_permission (role, permission_id),
+    FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
+  )`
+];
+
 async function runMigrations() {
   let connection;
 
@@ -115,6 +139,82 @@ async function runMigrations() {
     for (let i = 0; i < migrations.length; i++) {
       await connection.query(migrations[i]);
       console.log(`Migration ${i + 1} completed`);
+    }
+
+    // Run alter statements (ignore errors for already existing columns/tables)
+    for (let i = 0; i < alterStatements.length; i++) {
+      try {
+        await connection.query(alterStatements[i]);
+        console.log(`Alter statement ${i + 1} completed`);
+      } catch (err) {
+        // Ignore duplicate column/table errors
+        if (err.code !== 'ER_DUP_FIELDNAME' && err.code !== 'ER_TABLE_EXISTS_ERROR') {
+          console.log(`Alter ${i + 1} skipped: ${err.message}`);
+        }
+      }
+    }
+
+    // Seed permissions if table is empty
+    const [permCount] = await connection.query('SELECT COUNT(*) as cnt FROM permissions');
+    if (permCount[0].cnt === 0) {
+      console.log('Seeding permissions...');
+      const permissionSeeds = [
+        ['transactions.view', 'View Transactions', 'View transaction list and details', 'transactions'],
+        ['transactions.create', 'Create Transactions', 'Create new exchange transactions', 'transactions'],
+        ['transactions.edit', 'Edit Transactions', 'Edit transaction details', 'transactions'],
+        ['transactions.cancel', 'Cancel Transactions', 'Cancel existing transactions', 'transactions'],
+        ['transactions.delete', 'Delete Transactions', 'Permanently delete transactions', 'transactions'],
+        ['customers.view', 'View Customers', 'View customer list and details', 'customers'],
+        ['customers.create', 'Create Customers', 'Add new customers', 'customers'],
+        ['customers.edit', 'Edit Customers', 'Edit customer information', 'customers'],
+        ['customers.delete', 'Delete Customers', 'Delete customers', 'customers'],
+        ['customers.block', 'Block Customers', 'Block/unblock customers', 'customers'],
+        ['currencies.view', 'View Currencies', 'View currencies and exchange rates', 'currencies'],
+        ['currencies.manage', 'Manage Currencies', 'Add/edit currencies', 'currencies'],
+        ['currencies.rates', 'Manage Exchange Rates', 'Set exchange rates', 'currencies'],
+        ['reports.view', 'View Reports', 'View basic reports', 'reports'],
+        ['reports.daily', 'Daily Reports', 'Access daily reports', 'reports'],
+        ['reports.monthly', 'Monthly Reports', 'Access monthly reports', 'reports'],
+        ['audit.view', 'View Audit Logs', 'View audit trail', 'audit'],
+        ['cash_drawer.view', 'View Cash Drawers', 'View cash drawer balances', 'cash_drawer'],
+        ['cash_drawer.manage', 'Manage Cash Drawers', 'Create/edit cash drawers', 'cash_drawer'],
+        ['shifts.view', 'View Shifts', 'View shift history', 'shifts'],
+        ['shifts.manage', 'Manage Shifts', 'Start/end/handover shifts', 'shifts'],
+        ['users.view', 'View Users', 'View user list', 'users'],
+        ['users.create', 'Create Users', 'Add new users', 'users'],
+        ['users.edit', 'Edit Users', 'Edit user information', 'users'],
+        ['users.permissions', 'Manage Permissions', 'Manage role permissions', 'users']
+      ];
+
+      for (const [code, name, desc, cat] of permissionSeeds) {
+        await connection.query(
+          'INSERT INTO permissions (code, name, description, category) VALUES (?, ?, ?, ?)',
+          [code, name, desc, cat]
+        );
+      }
+      console.log('Permissions seeded');
+
+      // Assign all permissions to admin
+      await connection.query('INSERT INTO role_permissions (role, permission_id) SELECT "admin", id FROM permissions');
+
+      // Assign most to manager (except users)
+      await connection.query('INSERT INTO role_permissions (role, permission_id) SELECT "manager", id FROM permissions WHERE category != "users"');
+
+      // Assign basic to teller
+      await connection.query(`INSERT INTO role_permissions (role, permission_id) SELECT "teller", id FROM permissions WHERE code IN (
+        'transactions.view', 'transactions.create', 'transactions.edit',
+        'customers.view', 'customers.create', 'customers.edit',
+        'currencies.view', 'reports.view', 'reports.daily',
+        'cash_drawer.view', 'shifts.view', 'shifts.manage'
+      )`);
+
+      // Assign view-only to viewer
+      await connection.query(`INSERT INTO role_permissions (role, permission_id) SELECT "viewer", id FROM permissions WHERE code IN (
+        'transactions.view', 'customers.view', 'currencies.view',
+        'reports.view', 'cash_drawer.view', 'shifts.view'
+      )`);
+
+      console.log('Role permissions assigned');
     }
 
     console.log('All migrations completed successfully');
