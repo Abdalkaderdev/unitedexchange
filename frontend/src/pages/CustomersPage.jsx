@@ -48,7 +48,7 @@ const CustomersPage = () => {
       };
       const response = await customerService.getCustomers(params);
       if (response.success) {
-        setCustomers(response.customers || []);
+        setCustomers(response.data || []);
         setPagination(prev => ({ ...prev, ...response.pagination }));
       }
     } catch (error) {
@@ -76,14 +76,14 @@ const CustomersPage = () => {
   const openEditModal = (customer) => {
     setEditingCustomer(customer);
     reset({
-      fullName: customer.full_name,
+      fullName: customer.fullName,
       phone: customer.phone,
       email: customer.email,
-      idType: customer.id_type,
-      idNumber: customer.id_number,
+      idType: customer.idType,
+      idNumber: customer.idNumber,
       address: customer.address,
       notes: customer.notes,
-      isVip: customer.is_vip
+      isVip: customer.isVip
     });
     setShowModal(true);
   };
@@ -94,7 +94,7 @@ const CustomersPage = () => {
     try {
       const response = await customerService.getCustomerStats(customer.uuid);
       if (response.success) {
-        setCustomerStats(response.stats);
+        setCustomerStats(response.data?.overview || null);
       }
     } catch (error) {
       console.error('Failed to fetch customer stats:', error);
@@ -119,7 +119,7 @@ const CustomersPage = () => {
 
   const toggleBlock = async (customer) => {
     try {
-      if (customer.is_blocked) {
+      if (customer.isBlocked) {
         await customerService.unblockCustomer(customer.uuid);
         toast.success(t('customers.customerUnblocked'));
       } else {
@@ -241,12 +241,11 @@ const CustomersPage = () => {
                             </div>
                             <div className="ml-4 rtl:ml-0 rtl:mr-4">
                               <div className="flex items-center">
-                                <span className="font-medium text-gray-900">{customer.full_name}</span>
-                                {customer.is_vip && (
+                                <span className="font-medium text-gray-900">{customer.fullName}</span>
+                                {customer.isVip && (
                                   <StarSolidIcon className="h-4 w-4 ml-1 text-yellow-500" />
                                 )}
                               </div>
-                              <div className="text-sm text-gray-500">#{customer.customer_number}</div>
                             </div>
                           </div>
                         </td>
@@ -267,24 +266,24 @@ const CustomersPage = () => {
                           </div>
                         </td>
                         <td className="table-cell">
-                          {customer.id_type && (
+                          {customer.idType && (
                             <div className="flex items-center text-sm text-gray-600">
                               <IdentificationIcon className="h-4 w-4 mr-1" />
-                              <span className="capitalize">{customer.id_type.replace('_', ' ')}</span>
-                              {customer.id_number && (
-                                <span className="ml-1">: {customer.id_number}</span>
+                              <span className="capitalize">{customer.idType.replace('_', ' ')}</span>
+                              {customer.idNumber && (
+                                <span className="ml-1">: {customer.idNumber}</span>
                               )}
                             </div>
                           )}
                         </td>
                         <td className="table-cell">
                           <div className="text-sm">
-                            <div>{customer.total_transactions || 0} {t('transactions.title')}</div>
-                            <div className="text-gray-500">${formatCurrency(customer.total_volume)}</div>
+                            <div>{customer.totalTransactions || 0} {t('transactions.title')}</div>
+                            <div className="text-gray-500">${formatCurrency(customer.totalVolume)}</div>
                           </div>
                         </td>
                         <td className="table-cell">
-                          {customer.is_blocked ? (
+                          {customer.isBlocked ? (
                             <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
                               {t('customers.blocked')}
                             </span>
@@ -312,10 +311,10 @@ const CustomersPage = () => {
                             </button>
                             <button
                               onClick={() => toggleBlock(customer)}
-                              className={`p-1 ${customer.is_blocked ? 'text-green-500 hover:text-green-700' : 'text-orange-500 hover:text-orange-700'}`}
-                              title={customer.is_blocked ? t('customers.unblock') : t('customers.block')}
+                              className={`p-1 ${customer.isBlocked ? 'text-green-500 hover:text-green-700' : 'text-orange-500 hover:text-orange-700'}`}
+                              title={customer.isBlocked ? t('customers.unblock') : t('customers.block')}
                             >
-                              {customer.is_blocked ? <CheckCircleIcon className="h-5 w-5" /> : <NoSymbolIcon className="h-5 w-5" />}
+                              {customer.isBlocked ? <CheckCircleIcon className="h-5 w-5" /> : <NoSymbolIcon className="h-5 w-5" />}
                             </button>
                             <button
                               onClick={() => deleteCustomer(customer)}
@@ -429,12 +428,11 @@ const CustomersPage = () => {
               </div>
               <div className="ml-4 rtl:ml-0 rtl:mr-4">
                 <div className="flex items-center">
-                  <h3 className="text-lg font-semibold">{selectedCustomer.full_name}</h3>
-                  {selectedCustomer.is_vip && (
+                  <h3 className="text-lg font-semibold">{selectedCustomer.fullName}</h3>
+                  {selectedCustomer.isVip && (
                     <StarSolidIcon className="h-5 w-5 ml-2 text-yellow-500" />
                   )}
                 </div>
-                <p className="text-gray-500">#{selectedCustomer.customer_number}</p>
               </div>
             </div>
 
@@ -449,11 +447,11 @@ const CustomersPage = () => {
               </div>
               <div>
                 <label className="text-sm text-gray-500">{t('customers.idType')}</label>
-                <p className="font-medium capitalize">{selectedCustomer.id_type?.replace('_', ' ') || '-'}</p>
+                <p className="font-medium capitalize">{selectedCustomer.idType?.replace('_', ' ') || '-'}</p>
               </div>
               <div>
                 <label className="text-sm text-gray-500">{t('customers.idNumber')}</label>
-                <p className="font-medium">{selectedCustomer.id_number || '-'}</p>
+                <p className="font-medium">{selectedCustomer.idNumber || '-'}</p>
               </div>
               <div className="col-span-2">
                 <label className="text-sm text-gray-500">{t('customers.address')}</label>
@@ -461,7 +459,7 @@ const CustomersPage = () => {
               </div>
               <div>
                 <label className="text-sm text-gray-500">{t('customers.memberSince')}</label>
-                <p className="font-medium">{formatDate(selectedCustomer.created_at)}</p>
+                <p className="font-medium">{formatDate(selectedCustomer.createdAt)}</p>
               </div>
             </div>
 
@@ -470,15 +468,15 @@ const CustomersPage = () => {
                 <h4 className="font-medium mb-4">{t('customers.statistics')}</h4>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-gray-50 p-4 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-primary-600">{customerStats.totalTransactions || 0}</p>
+                    <p className="text-2xl font-bold text-primary-600">{customerStats.completedTransactions || 0}</p>
                     <p className="text-sm text-gray-500">{t('transactions.title')}</p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-green-600">${formatCurrency(customerStats.totalVolume)}</p>
+                    <p className="text-2xl font-bold text-green-600">${formatCurrency(customerStats.totalVolumeIn)}</p>
                     <p className="text-sm text-gray-500">{t('reports.totalVolume')}</p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-blue-600">{formatDate(customerStats.lastTransaction)}</p>
+                    <p className="text-2xl font-bold text-blue-600">{formatDate(customerStats.lastTransactionDate)}</p>
                     <p className="text-sm text-gray-500">{t('customers.lastTransaction')}</p>
                   </div>
                 </div>

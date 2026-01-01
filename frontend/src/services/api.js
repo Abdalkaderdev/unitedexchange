@@ -22,8 +22,24 @@ export const tokenManager = {
       localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
     }
     if (expiresIn) {
-      // Calculate expiry timestamp (current time + expiresIn seconds)
-      const expiryTime = Date.now() + (expiresIn * 1000);
+      // Parse expiresIn - can be "15m", "1h", "7d" or number of seconds
+      let expiryMs;
+      if (typeof expiresIn === 'string') {
+        const match = expiresIn.match(/^(\d+)([smhd])$/);
+        if (match) {
+          const value = parseInt(match[1], 10);
+          const unit = match[2];
+          const multipliers = { s: 1000, m: 60000, h: 3600000, d: 86400000 };
+          expiryMs = value * multipliers[unit];
+        } else {
+          // Fallback: assume seconds if just a number string
+          expiryMs = parseInt(expiresIn, 10) * 1000;
+        }
+      } else {
+        // Assume seconds if number
+        expiryMs = expiresIn * 1000;
+      }
+      const expiryTime = Date.now() + expiryMs;
       localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
     }
   },
