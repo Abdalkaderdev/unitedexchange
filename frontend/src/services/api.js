@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Use relative URL in production, localhost in development
+const API_URL = process.env.REACT_APP_API_URL ||
+  (process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:5000/api');
 
 // Token storage keys
 const ACCESS_TOKEN_KEY = 'accessToken';
