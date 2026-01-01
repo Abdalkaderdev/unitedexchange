@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { PlusIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, ArrowPathIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 import currencyService from '../services/currencyService';
 import { Button, Card } from '../components/common';
@@ -9,6 +9,7 @@ import CurrencyList from '../components/currencies/CurrencyList';
 import CurrencyForm from '../components/currencies/CurrencyForm';
 import ExchangeRateList from '../components/currencies/ExchangeRateList';
 import ExchangeRateForm from '../components/currencies/ExchangeRateForm';
+import { BulkRateUpdateModal } from '../components/currencies';
 
 const CurrenciesPage = () => {
   const { t } = useTranslation();
@@ -29,6 +30,7 @@ const CurrenciesPage = () => {
   const [loadingRates, setLoadingRates] = useState(true);
   const [rateModalOpen, setRateModalOpen] = useState(false);
   const [savingRate, setSavingRate] = useState(false);
+  const [bulkRateModalOpen, setBulkRateModalOpen] = useState(false);
 
   // Fetch currencies
   const fetchCurrencies = useCallback(async () => {
@@ -228,6 +230,16 @@ const CurrenciesPage = () => {
                 <ArrowPathIcon className={`h-4 w-4 mr-1 ${loadingRates ? 'animate-spin' : ''}`} />
                 {t('common.refresh')}
               </Button>
+              {isAdmin() && exchangeRates.length > 0 && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setBulkRateModalOpen(true)}
+                >
+                  <PencilSquareIcon className="h-4 w-4 mr-1" />
+                  {t('currencies.bulkEdit') || 'Bulk Edit'}
+                </Button>
+              )}
               {isAdmin() && (
                 <Button
                   variant="primary"
@@ -267,6 +279,15 @@ const CurrenciesPage = () => {
         onSubmit={handleRateSubmit}
         currencies={currencies}
         loading={savingRate}
+      />
+
+      {/* Bulk Rate Update Modal */}
+      <BulkRateUpdateModal
+        isOpen={bulkRateModalOpen}
+        onClose={() => setBulkRateModalOpen(false)}
+        rates={exchangeRates}
+        currencies={currencies}
+        onSuccess={fetchExchangeRates}
       />
     </div>
   );

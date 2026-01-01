@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { Button, Input, Select, Modal, Card, Loading } from '../components/common';
 import { Pagination } from '../components/common/Table';
+import { BulkActionBar } from '../components/customers';
 import customerService from '../services/customerService';
 import toast from 'react-hot-toast';
 import {
@@ -33,6 +34,7 @@ const CustomersPage = () => {
   const [customerStats, setCustomerStats] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [filters, setFilters] = useState({ isVip: '', isBlocked: '' });
+  const [selectedCustomers, setSelectedCustomers] = useState([]);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
@@ -161,6 +163,34 @@ const CustomersPage = () => {
     return new Intl.NumberFormat().format(amount);
   };
 
+  // Selection handlers for bulk actions
+  const toggleCustomerSelection = (customer) => {
+    setSelectedCustomers(prev => {
+      const isSelected = prev.some(c => c.uuid === customer.uuid);
+      if (isSelected) {
+        return prev.filter(c => c.uuid !== customer.uuid);
+      } else {
+        return [...prev, customer];
+      }
+    });
+  };
+
+  const toggleAllSelection = () => {
+    if (selectedCustomers.length === customers.length) {
+      setSelectedCustomers([]);
+    } else {
+      setSelectedCustomers([...customers]);
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedCustomers([]);
+  };
+
+  const isCustomerSelected = (customer) => {
+    return selectedCustomers.some(c => c.uuid === customer.uuid);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -216,6 +246,14 @@ const CustomersPage = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="table-header w-12">
+                      <input
+                        type="checkbox"
+                        checked={customers.length > 0 && selectedCustomers.length === customers.length}
+                        onChange={toggleAllSelection}
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                      />
+                    </th>
                     <th className="table-header">{t('customers.name')}</th>
                     <th className="table-header">{t('customers.contact')}</th>
                     <th className="table-header">{t('customers.idInfo')}</th>
@@ -227,13 +265,21 @@ const CustomersPage = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {customers.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
                         {t('common.noData')}
                       </td>
                     </tr>
                   ) : (
                     customers.map((customer) => (
-                      <tr key={customer.uuid} className="hover:bg-gray-50">
+                      <tr key={customer.uuid} className={`hover:bg-gray-50 ${isCustomerSelected(customer) ? 'bg-primary-50' : ''}`}>
+                        <td className="table-cell">
+                          <input
+                            type="checkbox"
+                            checked={isCustomerSelected(customer)}
+                            onChange={() => toggleCustomerSelection(customer)}
+                            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                          />
+                        </td>
                         <td className="table-cell">
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center">
@@ -485,6 +531,16 @@ const CustomersPage = () => {
           </div>
         )}
       </Modal>
+
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedCustomers={selectedCustomers}
+        onClear={clearSelection}
+        onSuccess={fetchCustomers}
+      />
+
+      {/* Bottom padding when bulk action bar is visible */}
+      {selectedCustomers.length > 0 && <div className="h-20" />}
     </div>
   );
 };

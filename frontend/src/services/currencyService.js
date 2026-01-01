@@ -50,6 +50,12 @@ export const currencyService = {
 
     const response = await api.get('/currencies/rates/history', { params });
     return response.data;
+  },
+
+  // Bulk update exchange rates
+  bulkUpdateRates: async (rates) => {
+    const response = await api.put('/currencies/rates/bulk', { rates });
+    return response.data;
   }
 };
 

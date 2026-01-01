@@ -49,6 +49,14 @@ const customerService = {
   searchCustomers: async (search) => {
     const response = await api.get('/customers', { params: { search, limit: 10 } });
     return response.data;
+  },
+
+  // Bulk update customers (block/unblock/VIP)
+  bulkUpdate: async (uuids, action, reason = null) => {
+    const data = { uuids, action };
+    if (reason) data.reason = reason;
+    const response = await api.put('/customers/bulk/update', data);
+    return response.data;
   }
 };
 
