@@ -6,7 +6,7 @@ const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const { authenticate, authorize } = require('../middleware/auth');
-const { validate } = require('../middleware/validate');
+const { validate } = require('../middleware/validator');
 const permissionController = require('../controllers/permissionController');
 
 // All routes require authentication and admin role
