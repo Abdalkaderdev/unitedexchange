@@ -37,28 +37,20 @@ const ExchangeRateList = ({ rates, loading }) => {
     {
       header: t('currencies.fromCurrency'),
       accessor: 'fromCurrency',
-      render: (value, row) => (
-        <div className="flex items-center">
-          <span className="font-mono font-semibold text-gray-900">{value?.code || value}</span>
-          {value?.name && (
-            <span className="ml-2 text-sm text-gray-500">
-              ({value.name})
-            </span>
-          )}
+      render: (_, row) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-gray-900">{row.fromCurrency?.code}</span>
+          <span className="text-xs text-gray-500">{row.fromCurrency?.name}</span>
         </div>
       )
     },
     {
       header: t('currencies.toCurrency'),
       accessor: 'toCurrency',
-      render: (value, row) => (
-        <div className="flex items-center">
-          <span className="font-mono font-semibold text-gray-900">{value?.code || value}</span>
-          {value?.name && (
-            <span className="ml-2 text-sm text-gray-500">
-              ({value.name})
-            </span>
-          )}
+      render: (_, row) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-gray-900">{row.toCurrency?.code}</span>
+          <span className="text-xs text-gray-500">{row.toCurrency?.name}</span>
         </div>
       )
     },
