@@ -14,6 +14,20 @@ router.use(authenticate);
 
 /**
  * @swagger
+ * /users/employees:
+ *   get:
+ *     summary: Get list of employees for filters (any authenticated user)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of employees (limited data)
+ */
+router.get('/employees', userController.getEmployeeList);
+
+/**
+ * @swagger
  * /users:
  *   get:
  *     summary: Get all users (admin only)

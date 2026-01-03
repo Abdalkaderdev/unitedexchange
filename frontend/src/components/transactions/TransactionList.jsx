@@ -3,28 +3,25 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import transactionService from '../../services/transactionService';
 import currencyService from '../../services/currencyService';
-import { Button, Input, Select, Table, Card, Pagination, ConfirmDialog } from '../common';
+import userService from '../../services/userService';
+import { Button, Table, Pagination, ConfirmDialog, AdvancedFilters } from '../common';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import { FunnelIcon, ArrowPathIcon, XCircleIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { FunnelIcon, ArrowPathIcon, XCircleIcon, TrashIcon, EyeIcon, ArrowPathRoundedSquareIcon } from '@heroicons/react/24/outline';
 import ReceiptActions from './ReceiptActions';
+import BulkImportModal from './BulkImportModal';
 
-const TransactionList = ({ onRefresh }) => {
+const TransactionList = ({ onRefresh, onRepeat }) => {
   const { t } = useTranslation();
   const { isAdmin } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [currencies, setCurrencies] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    dateFrom: '',
-    dateTo: '',
-    currencyCode: '',
-    customerName: '',
-    status: ''
-  });
+  const [filters, setFilters] = useState({});
 
   // Cancel/Delete dialog states
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -34,6 +31,7 @@ const TransactionList = ({ onRefresh }) => {
 
   useEffect(() => {
     fetchCurrencies();
+    fetchEmployees();
   }, []);
 
   useEffect(() => {
@@ -49,20 +47,33 @@ const TransactionList = ({ onRefresh }) => {
     }
   };
 
+  const fetchEmployees = async () => {
+    try {
+      const response = await userService.getEmployees();
+      if (response.success) {
+        setEmployees(response.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch employees:', error);
+    }
+  };
+
   const fetchTransactions = async () => {
     setLoading(true);
     try {
       const params = {
         page,
         limit: 10,
-        ...Object.fromEntries(
-          Object.entries(filters).filter(([_, value]) => value !== '')
-        )
+        ...filters
       };
+
+      // Map AdvancedFilters amount range keys if present
+      // AdvancedFilters uses minAmount/maxAmount which matches backend
+
       const response = await transactionService.getTransactions(params);
       if (response.success) {
         setTransactions(response.data.transactions || response.data);
-        setTotalPages(response.data.totalPages || 1);
+        setTotalPages(response.data.pagination?.totalPages || response.data.totalPages || 1);
       }
     } catch (error) {
       toast.error(t('common.error'));
@@ -82,15 +93,26 @@ const TransactionList = ({ onRefresh }) => {
   };
 
   const handleResetFilters = () => {
-    setFilters({
-      dateFrom: '',
-      dateTo: '',
-      currencyCode: '',
-      customerName: '',
-      status: ''
-    });
+    setFilters({});
     setPage(1);
-    fetchTransactions();
+    setTimeout(() => {
+      // Need to re-trigger fetch after state update
+      // But fetchTransactions reads from 'filters' state which is stale in this closure?
+      // With the useEffect dependency on 'filters' removed, we need to manually trigger
+      // Actually fetchTransactions depends on 'page' and 'onRefresh'. 
+      // We should probably just set filters and then allow manual refresh or add 'filters' to dependency if we wanted auto-refresh
+      // But AdvancedFilters usually requires manual 'Apply'.
+      // So here we'll just reset and let user click filter or auto-trigger? 
+      // Existing code used setTimeout. Let's call service directly with empty params for reset.
+      setLoading(true);
+      transactionService.getTransactions({ page: 1, limit: 10 }).then(response => {
+        if (response.success) {
+          setTransactions(response.data.transactions || response.data);
+          setTotalPages(response.data.pagination?.totalPages || response.data.totalPages || 1);
+        }
+        setLoading(false);
+      });
+    }, 0);
   };
 
   // Cancel transaction handlers
@@ -168,13 +190,6 @@ const TransactionList = ({ onRefresh }) => {
     );
   };
 
-  // Status filter options
-  const statusOptions = [
-    { value: '', label: t('common.all') },
-    { value: 'completed', label: t('transactions.completed') },
-    { value: 'cancelled', label: t('transactions.cancelled') }
-  ];
-
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
@@ -192,19 +207,113 @@ const TransactionList = ({ onRefresh }) => {
     });
   };
 
-  const currencyOptions = currencies.map(c => ({
-    value: c.code,
-    label: `${c.code} - ${c.name}`
-  }));
+  const currencyOptions = [
+    { value: '', label: t('common.all') },
+    ...currencies.map(c => ({
+      value: c.code,
+      label: `${c.code} - ${c.name}`
+    }))
+  ];
+
+  const employeeOptions = [
+    { value: '', label: t('reports.allEmployees') },
+    ...employees.map(e => ({
+      value: e.uuid,
+      label: e.fullName
+    }))
+  ];
+
+  const statusOptions = [
+    { value: '', label: t('common.all') },
+    { value: 'completed', label: t('transactions.completed') },
+    { value: 'cancelled', label: t('transactions.cancelled') }
+  ];
+
+  const filterConfig = [
+    {
+      key: 'transactionNumber',
+      type: 'text',
+      label: t('transactions.transactionNumber') || 'Transaction ID',
+      placeholder: 'TRX-...'
+    },
+    {
+      key: 'dateRange',
+      type: 'dateRange',
+      startKey: 'startDate',
+      endKey: 'endDate',
+      startLabel: t('common.startDate'),
+      endLabel: t('common.endDate')
+    },
+    {
+      key: 'customerName',
+      type: 'text',
+      label: t('transactions.customerName'),
+      placeholder: t('common.search')
+    },
+    {
+      key: 'customerPhone',
+      type: 'text',
+      label: t('transactions.phone') || 'Phone',
+      placeholder: 'e.g. 555-0123'
+    },
+    {
+      key: 'amountRange',
+      type: 'amountRange',
+      minKey: 'minAmount',
+      maxKey: 'maxAmount',
+      minLabel: t('filters.minAmount'),
+      maxLabel: t('filters.maxAmount')
+    },
+    {
+      key: 'currencyIn',
+      type: 'select',
+      label: t('transactions.currencyIn'),
+      options: currencyOptions
+    },
+    {
+      key: 'currencyOut',
+      type: 'select',
+      label: t('transactions.currencyOut'),
+      options: currencyOptions
+    },
+    {
+      key: 'status',
+      type: 'select',
+      label: t('common.status'),
+      options: statusOptions
+    },
+    {
+      key: 'employeeId',
+      type: 'select',
+      label: t('transactions.employee'),
+      options: employeeOptions
+    },
+    {
+      key: 'notes',
+      type: 'text',
+      label: t('transactions.notes') || 'Notes',
+      placeholder: 'Search notes...'
+    }
+  ];
 
   const columns = [
     {
       header: t('transactions.date'),
       accessor: 'transactionDate',
       render: (value, row) => (
-        <span className={`text-gray-600 text-sm ${row.status === 'cancelled' ? 'line-through' : ''}`}>
-          {formatDate(value)}
-        </span>
+        <div className="flex flex-col">
+          <span className={`text-gray-600 text-sm ${row.status === 'cancelled' ? 'line-through' : ''}`}>
+            {formatDate(value)}
+          </span>
+          {row.isFlagged && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 mt-1" title={row.flagReason}>
+              <svg className="mr-1 h-3 w-3 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clipRule="evenodd" />
+              </svg>
+              Flagged
+            </span>
+          )}
+        </div>
       )
     },
     {
@@ -299,6 +408,13 @@ const TransactionList = ({ onRefresh }) => {
               <TrashIcon className="h-5 w-5" />
             </button>
           )}
+          <button
+            onClick={() => onRepeat(row)}
+            className="p-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded"
+            title={t('transactions.repeatTransaction') || 'Repeat'}
+          >
+            <ArrowPathRoundedSquareIcon className="h-5 w-5" />
+          </button>
         </div>
       )
     }
@@ -306,16 +422,8 @@ const TransactionList = ({ onRefresh }) => {
 
   return (
     <div className="space-y-4">
-      {/* Filter Toggle Button */}
-      <div className="flex items-center gap-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          <FunnelIcon className="h-4 w-4 mr-2 rtl:mr-0 rtl:ml-2" />
-          {t('common.filter')}
-        </Button>
+      {/* Header with Refresh button */}
+      <div className="flex justify-end gap-2">
         <Button
           variant="secondary"
           size="sm"
@@ -326,52 +434,17 @@ const TransactionList = ({ onRefresh }) => {
         </Button>
       </div>
 
-      {/* Filters Panel */}
-      {showFilters && (
-        <Card className="bg-gray-50">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <Input
-              label={t('transactions.date') + ' (' + t('common.from') + ')'}
-              type="date"
-              value={filters.dateFrom}
-              onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-            />
-            <Input
-              label={t('transactions.date') + ' (' + t('common.to') + ')'}
-              type="date"
-              value={filters.dateTo}
-              onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-            />
-            <Select
-              label={t('currencies.code')}
-              options={currencyOptions}
-              placeholder={t('common.all')}
-              value={filters.currencyCode}
-              onChange={(e) => handleFilterChange('currencyCode', e.target.value)}
-            />
-            <Input
-              label={t('transactions.customerName')}
-              placeholder={t('common.search')}
-              value={filters.customerName}
-              onChange={(e) => handleFilterChange('customerName', e.target.value)}
-            />
-            <Select
-              label={t('common.status')}
-              options={statusOptions}
-              value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-            />
-          </div>
-          <div className="flex items-center gap-2 mt-4">
-            <Button size="sm" onClick={handleApplyFilters}>
-              {t('common.filter')}
-            </Button>
-            <Button variant="secondary" size="sm" onClick={handleResetFilters}>
-              {t('common.cancel')}
-            </Button>
-          </div>
-        </Card>
-      )}
+      {/* Advanced Filters */}
+      <AdvancedFilters
+        resourceType="transactions"
+        filters={filters}
+        filterConfig={filterConfig}
+        onFilterChange={handleFilterChange}
+        onApply={handleApplyFilters}
+        onReset={handleResetFilters}
+        isOpen={showFilters}
+        onToggle={() => setShowFilters(!showFilters)}
+      />
 
       {/* Transactions Table */}
       <Table
@@ -424,7 +497,6 @@ const TransactionList = ({ onRefresh }) => {
         showReasonInput={false}
         loading={actionLoading}
       />
-
     </div>
   );
 };

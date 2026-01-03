@@ -46,6 +46,60 @@ router.get('/dashboard', reportController.getDashboardStats);
 
 /**
  * @swagger
+ * /reports/dashboard/charts:
+ *   get:
+ *     summary: Get dashboard chart data
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard chart data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     dailyTrend:
+ *                       type: array
+ *                       description: Daily transaction volume and profit for past 7 days
+ *                     profitByCurrency:
+ *                       type: array
+ *                       description: Profit breakdown by currency
+ *                     transactionsByCurrencyPair:
+ *                       type: array
+ *                       description: Transaction distribution by currency pair
+ */
+router.get('/dashboard/charts', reportController.getDashboardCharts);
+
+/**
+ * @swagger
+ * /reports/leaderboard:
+ *   get:
+ *     summary: Get employee leaderboard
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [today, month, year, all]
+ *           default: month
+ *     responses:
+ *       200:
+ *         description: Leaderboard data
+ */
+router.get('/leaderboard', reportController.getLeaderboard);
+
+/**
+ * @swagger
  * /reports/daily:
  *   get:
  *     summary: Get daily report
@@ -502,6 +556,44 @@ router.post(
   ],
   validate,
   reportController.generateCustomReport
+);
+
+/**
+ * @swagger
+ * /reports/custom/export:
+ *   post:
+ *     summary: Export custom report
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               format:
+ *                 type: string
+ *                 enum: [xlsx, csv, pdf]
+ *               startDate:
+ *                 type: string
+ *                 format: date
+ *               endDate:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       200:
+ *         description: File download
+ */
+router.post(
+  '/custom/export',
+  [
+    body('format').optional().isIn(['xlsx', 'csv', 'pdf']).withMessage('Invalid format'),
+    body('startDate').optional().isDate(),
+    body('endDate').optional().isDate()
+  ],
+  validate,
+  reportController.exportCustomReport
 );
 
 module.exports = router;

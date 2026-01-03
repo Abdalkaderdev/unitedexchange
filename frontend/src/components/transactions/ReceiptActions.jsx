@@ -11,7 +11,10 @@ const ReceiptActions = ({ transaction, size = 'sm', showLabels = false }) => {
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const printFrameRef = useRef(null);
 
-  const currentLang = i18n.language || 'en';
+  // Extract base language code (e.g., 'en-US' -> 'en')
+  const baseLang = (i18n.language || 'en').split('-')[0];
+  // Only allow supported languages, fallback to 'en'
+  const currentLang = ['en', 'ar', 'ku'].includes(baseLang) ? baseLang : 'en';
 
   const handlePrint = async () => {
     if (loading) return;

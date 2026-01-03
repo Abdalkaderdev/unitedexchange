@@ -9,9 +9,40 @@ const transactionController = require('../controllers/transactionController');
 const receiptController = require('../controllers/receiptController');
 const { authenticate, authorize } = require('../middleware/auth');
 const { validate } = require('../middleware/validator');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
+const importController = require('../controllers/importController');
 
 // All routes require authentication
 router.use(authenticate);
+
+/**
+ * @swagger
+ * /transactions/import:
+ *   post:
+ *     summary: Bulk import transactions from CSV
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Import summary
+ */
+router.post(
+  '/import',
+  authorize('admin'), // Restrict to admins for safety
+  upload.single('file'),
+  importController.importTransactions
+);
 
 /**
  * @swagger

@@ -20,6 +20,7 @@ const scheduledReportRoutes = require('./scheduledReportRoutes');
 const filterPresetRoutes = require('./filterPresetRoutes');
 const auditRoutes = require('./auditRoutes');
 const permissionRoutes = require('./permissionRoutes');
+const rateAlertRoutes = require('./rateAlertRoutes');
 
 // Mount routes
 router.use('/auth', authRoutes);
@@ -36,5 +37,6 @@ router.use('/scheduled-reports', scheduledReportRoutes);
 router.use('/filter-presets', filterPresetRoutes);
 router.use('/audit-logs', auditRoutes);
 router.use('/permissions', permissionRoutes);
+router.use('/rate-alerts', rateAlertRoutes);
 
 module.exports = router;

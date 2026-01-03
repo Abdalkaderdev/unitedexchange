@@ -754,6 +754,108 @@ const getLowBalanceAlerts = async (req, res, next) => {
   }
 };
 
+/**
+ * Get drawer status
+ */
+const getDrawerStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const [drawers] = await pool.query(`
+      SELECT
+        d.*,
+        u.full_name as assigned_to_name
+      FROM cash_drawers d
+      LEFT JOIN users u ON d.assigned_to = u.id
+      WHERE (d.id = ? OR d.uuid = ?) AND d.is_active = TRUE
+    `, [id, id]);
+
+    if (drawers.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Cash drawer not found.'
+      });
+    }
+
+    const drawer = drawers[0];
+
+    // Get balances
+    const [balances] = await pool.query(`
+      SELECT
+        c.id as currency_id,
+        c.code as currency_code,
+        c.symbol as currency_symbol,
+        b.balance
+      FROM cash_drawer_balances b
+      JOIN currencies c ON b.currency_id = c.id
+      WHERE b.drawer_id = ? AND c.is_active = TRUE
+      ORDER BY c.code
+    `, [drawer.id]);
+
+    res.json({
+      success: true,
+      data: {
+        uuid: drawer.uuid,
+        name: drawer.name,
+        assignedTo: drawer.assigned_to_name,
+        isActive: drawer.is_active,
+        lowBalanceAlert: parseDecimal(drawer.low_balance_alert),
+        balances: balances.map(b => ({
+          currencyId: b.currency_id,
+          currencyCode: b.currency_code,
+          currencySymbol: b.currency_symbol,
+          balance: parseDecimal(b.balance)
+        })),
+        createdAt: drawer.created_at,
+        updatedAt: drawer.updated_at
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Submit end-of-day closing for a drawer
+ */
+const submitClosing = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { actualBalances, notes } = req.body;
+    const userId = req.user.id;
+
+    const [drawers] = await pool.query(
+      'SELECT * FROM cash_drawers WHERE (id = ? OR uuid = ?) AND is_active = TRUE',
+      [id, id]
+    );
+
+    if (drawers.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Cash drawer not found.'
+      });
+    }
+
+    const drawer = drawers[0];
+    const closingUuid = require('uuid').v4();
+
+    // Insert closing record
+    await pool.query(`
+      INSERT INTO drawer_closings
+      (uuid, drawer_id, closed_by, actual_balances, notes, created_at)
+      VALUES (?, ?, ?, ?, ?, NOW())
+    `, [closingUuid, drawer.id, userId, JSON.stringify(actualBalances || {}), notes || null]);
+
+    res.json({
+      success: true,
+      message: 'Drawer closing submitted successfully.',
+      data: { uuid: closingUuid }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDrawers,
   getDrawer,
@@ -764,5 +866,7 @@ module.exports = {
   adjust,
   getDrawerHistory,
   reconcile,
-  getLowBalanceAlerts
+  getLowBalanceAlerts,
+  getDrawerStatus,
+  submitClosing
 };

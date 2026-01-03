@@ -6,6 +6,13 @@ export const reportService = {
     return response.data;
   },
 
+  getDashboardCharts: async () => {
+    const response = await api.get('/reports/dashboard/charts');
+    return response.data;
+  },
+
+  getLeaderboard: (period = 'month') => api.get(`/reports/leaderboard?period=${period}`),
+
   getDailyReport: async (date, employeeId) => {
     const params = {};
     if (date) params.date = date;
@@ -52,6 +59,13 @@ export const reportService = {
   generateCustomReport: async (config) => {
     const response = await api.post('/reports/custom', config);
     return response.data;
+  },
+
+  exportCustomReport: async (config, format = 'xlsx') => {
+    const response = await api.post('/reports/custom/export', { ...config, format }, {
+      responseType: 'blob'
+    });
+    return response;
   },
 
   // Export functions

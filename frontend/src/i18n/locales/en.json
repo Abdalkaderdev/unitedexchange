@@ -33,7 +33,10 @@
     "notes": "Notes",
     "name": "Name",
     "view": "View",
-    "required": "This field is required"
+    "required": "This field is required",
+    "allStatus": "All Status",
+    "select": "Select",
+    "none": "None"
   },
   "auth": {
     "login": "Login",
@@ -89,6 +92,19 @@
       "transactionsByEmployee": "Transactions by Employee",
       "transactions": "Transactions",
       "profit": "Profit"
+    },
+    "currencyCalculator": {
+      "title": "Currency Calculator",
+      "from": "From",
+      "to": "To",
+      "amount": "Amount",
+      "result": "Converted Amount",
+      "swap": "Swap currencies",
+      "buyRate": "Buy Rate",
+      "sellRate": "Sell Rate",
+      "currentRate": "Exchange Rate",
+      "noRateAvailable": "No exchange rate available for this currency pair",
+      "sameCurrencyWarning": "Please select different currencies to convert"
     }
   },
   "transactions": {
@@ -421,7 +437,14 @@
     "shiftStarted": "Shift started successfully",
     "shiftEnded": "Shift ended successfully",
     "shiftHandover": "Shift handed over successfully",
+    "shiftHandedOver": "Shift handed over successfully",
     "shiftAbandoned": "Shift abandoned",
+    "confirmAbandon": "Are you sure you want to abandon this shift? This action cannot be undone.",
+    "active": "Active",
+    "completed": "Completed",
+    "abandoned": "Abandoned",
+    "handedOver": "Handed Over",
+    "notesPlaceholder": "Add notes about this shift...",
     "statusTypes": {
       "active": "Active",
       "completed": "Completed",

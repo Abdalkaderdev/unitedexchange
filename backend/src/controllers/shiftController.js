@@ -611,45 +611,71 @@ const getShiftDetails = async (req, res, next) => {
 
     const shift = shifts[0];
 
-    // Get balances
-    const [balances] = await pool.query(`
-      SELECT
-        sb.*,
-        c.code as currency_code,
-        c.symbol as currency_symbol,
-        c.name as currency_name
-      FROM shift_balances sb
-      JOIN currencies c ON sb.currency_id = c.id
-      WHERE sb.shift_id = ?
-    `, [shift.id]);
+    // Get balances - handle case where table might not exist yet
+    let balances = [];
+    try {
+      const [balanceRows] = await pool.query(`
+        SELECT
+          sb.*,
+          c.code as currency_code,
+          c.symbol as currency_symbol,
+          c.name as currency_name
+        FROM shift_balances sb
+        JOIN currencies c ON sb.currency_id = c.id
+        WHERE sb.shift_id = ?
+      `, [shift.id]);
+      balances = balanceRows;
+    } catch (err) {
+      console.log('shift_balances query error (table may not exist):', err.message);
+    }
 
-    // Get summary
-    const [summaries] = await pool.query(
-      'SELECT * FROM shift_summaries WHERE shift_id = ?',
-      [shift.id]
-    );
+    // Get summary - handle case where table might not exist yet
+    let summary = {};
+    try {
+      const [summaries] = await pool.query(
+        'SELECT * FROM shift_summaries WHERE shift_id = ?',
+        [shift.id]
+      );
+      summary = summaries[0] || {};
+    } catch (err) {
+      console.log('shift_summaries query error (table may not exist):', err.message);
+    }
 
-    const summary = summaries[0] || {};
+    // Get recent transactions - check if shift_id column exists
+    let transactions = [];
+    try {
+      // First check if shift_id column exists
+      const [columns] = await pool.query(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'transactions'
+         AND COLUMN_NAME = 'shift_id'`
+      );
 
-    // Get recent transactions
-    const [transactions] = await pool.query(`
-      SELECT
-        t.uuid,
-        t.customer_name,
-        t.amount_in,
-        t.amount_out,
-        t.profit,
-        t.status,
-        t.transaction_date,
-        ci.code as currency_in_code,
-        co.code as currency_out_code
-      FROM transactions t
-      JOIN currencies ci ON t.currency_in_id = ci.id
-      JOIN currencies co ON t.currency_out_id = co.id
-      WHERE t.shift_id = ?
-      ORDER BY t.transaction_date DESC
-      LIMIT 50
-    `, [shift.id]);
+      if (columns.length > 0) {
+        const [txRows] = await pool.query(`
+          SELECT
+            t.uuid,
+            t.customer_name,
+            t.amount_in,
+            t.amount_out,
+            t.profit,
+            t.status,
+            t.transaction_date,
+            ci.code as currency_in_code,
+            co.code as currency_out_code
+          FROM transactions t
+          JOIN currencies ci ON t.currency_in_id = ci.id
+          JOIN currencies co ON t.currency_out_id = co.id
+          WHERE t.shift_id = ?
+          ORDER BY t.transaction_date DESC
+          LIMIT 50
+        `, [shift.id]);
+        transactions = txRows;
+      }
+    } catch (err) {
+      console.log('transactions query error:', err.message);
+    }
 
     res.json({
       success: true,

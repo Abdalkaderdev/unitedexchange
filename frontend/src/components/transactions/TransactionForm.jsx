@@ -6,12 +6,14 @@ import { Button, Input, Select, Modal } from '../common';
 import toast from 'react-hot-toast';
 import { CalculatorIcon } from '@heroicons/react/24/outline';
 
-const TransactionForm = ({ isOpen, onClose, onSuccess }) => {
+const TransactionForm = ({ isOpen, onClose, onSuccess, initialData = null }) => {
   const { t } = useTranslation();
   const [currencies, setCurrencies] = useState([]);
   const [exchangeRates, setExchangeRates] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [successData, setSuccessData] = useState(null);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     customerName: '',
     customerPhone: '',
@@ -23,30 +25,10 @@ const TransactionForm = ({ isOpen, onClose, onSuccess }) => {
     notes: ''
   });
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchCurrencies();
-      fetchExchangeRates();
-      resetForm();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    // Auto-populate exchange rate when currencies change
-    if (formData.currencyInId && formData.currencyOutId && exchangeRates.length > 0) {
-      const rate = findExchangeRate(formData.currencyInId, formData.currencyOutId);
-      if (rate) {
-        setFormData(prev => ({ ...prev, exchangeRate: rate.toString() }));
-      }
-    }
-  }, [formData.currencyInId, formData.currencyOutId, exchangeRates]);
-
   const fetchCurrencies = async () => {
     try {
-      const response = await currencyService.getCurrencies(true);
-      if (response.success) {
-        setCurrencies(response.data);
-      }
+      const currencies = await currencyService.getCurrencies(true);
+      setCurrencies(currencies || []);
     } catch (error) {
       console.error('Failed to fetch currencies:', error);
     }
@@ -54,10 +36,8 @@ const TransactionForm = ({ isOpen, onClose, onSuccess }) => {
 
   const fetchExchangeRates = async () => {
     try {
-      const response = await currencyService.getExchangeRates();
-      if (response.success) {
-        setExchangeRates(response.data);
-      }
+      const rates = await currencyService.getExchangeRates();
+      setExchangeRates(rates || []);
     } catch (error) {
       console.error('Failed to fetch exchange rates:', error);
     }
@@ -66,7 +46,7 @@ const TransactionForm = ({ isOpen, onClose, onSuccess }) => {
   const findExchangeRate = (currencyInId, currencyOutId) => {
     const rate = exchangeRates.find(
       r => r.fromCurrencyId === parseInt(currencyInId) &&
-           r.toCurrencyId === parseInt(currencyOutId)
+        r.toCurrencyId === parseInt(currencyOutId)
     );
     return rate?.sellRate || rate?.rate || null;
   };
@@ -84,6 +64,126 @@ const TransactionForm = ({ isOpen, onClose, onSuccess }) => {
     });
     setErrors({});
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchCurrencies();
+      fetchExchangeRates();
+      if (initialData) {
+        setFormData({
+          customerName: initialData.customerName || '',
+          customerPhone: initialData.customerPhone || '',
+          currencyInId: initialData.currencyInId ? initialData.currencyInId.toString() : '',
+          currencyOutId: initialData.currencyOutId ? initialData.currencyOutId.toString() : '',
+          amountIn: initialData.amountIn ? initialData.amountIn.toString() : '',
+          exchangeRate: '',
+          amountOut: '',
+          notes: initialData.notes || ''
+        });
+        setErrors({});
+      } else {
+        resetForm();
+      }
+    }
+  }, [isOpen, initialData]);
+
+  useEffect(() => {
+    if (formData.currencyInId && formData.currencyOutId && exchangeRates.length > 0) {
+      const rate = findExchangeRate(formData.currencyInId, formData.currencyOutId);
+      if (rate) {
+        setFormData(prev => ({ ...prev, exchangeRate: rate.toString() }));
+      }
+    }
+  }, [formData.currencyInId, formData.currencyOutId, exchangeRates]);
+
+  // Success View Component
+  if (successData) {
+    return (
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title={t('transactions.transactionSuccessful')}
+        size="md"
+      >
+        <div className="text-center py-6">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+            <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('transactions.createdSuccessfully')}</h3>
+          <p className="text-sm text-gray-500 mb-6">
+            {t('transactions.transactionNumber')}: <span className="font-mono font-medium text-gray-900">{successData.transactionNumber}</span>
+          </p>
+
+          <div className="flex flex-col gap-3">
+            <Button
+              onClick={() => setEmailModalOpen(true)}
+              variant="primary"
+              className="w-full justify-center"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              {t('transactions.emailReceipt')}
+            </Button>
+
+            <div className="flex gap-3">
+              <Button
+                onClick={() => {/* Print Logic Placeholder */ }}
+                variant="secondary"
+                className="flex-1 justify-center"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                {t('common.print')}
+              </Button>
+              <Button
+                onClick={onClose}
+                variant="outline"
+                className="flex-1 justify-center"
+              >
+                {t('common.close')}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {emailModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-500 bg-opacity-75">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-96">
+              <h3 className="text-lg font-medium mb-4">{t('transactions.enterEmail')}</h3>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                const email = e.target.email.value;
+                try {
+                  await transactionService.emailReceipt(successData.uuid, email);
+                  toast.success(t('transactions.receiptSent'));
+                  setEmailModalOpen(false);
+                  onClose();
+                } catch (err) {
+                  toast.error(t('common.error'));
+                }
+              }}>
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  className="w-full border rounded p-2 mb-4"
+                  placeholder="customer@example.com"
+                />
+                <div className="flex justify-end gap-2">
+                  <Button variant="secondary" onClick={() => setEmailModalOpen(false)}>{t('common.cancel')}</Button>
+                  <Button type="submit">{t('common.send')}</Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </Modal>
+    );
+  }
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -153,18 +253,29 @@ const TransactionForm = ({ isOpen, onClose, onSuccess }) => {
         notes: formData.notes.trim() || null
       };
 
-      const response = await transactionService.createTransaction(payload);
+      const response = await transactionService.create(payload);
+
       if (response.success) {
         toast.success(t('transactions.transactionCreated'));
         onSuccess?.();
-        onClose();
+        // Instead of closing, switch to success view
+        setSuccessData({
+          uuid: response.data.uuid || response.uuid, // Handle different response structures
+          transactionNumber: response.data.transactionNumber || 'NEW',
+          customerName: formData.customerName,
+          amountIn: formData.amountIn,
+          currencyInId: formData.currencyInId,
+          amountOut: formData.amountOut,
+          currencyOutId: formData.currencyOutId
+        });
+        setLoading(false); // Stop loading but keep modal open
       }
     } catch (error) {
       toast.error(error.response?.data?.message || t('common.error'));
       console.error('Failed to create transaction:', error);
-    } finally {
       setLoading(false);
     }
+    // Removed finally block to handle local loading state manually for success case logic
   };
 
   const currencyOptions = currencies.map(c => ({
@@ -176,7 +287,7 @@ const TransactionForm = ({ isOpen, onClose, onSuccess }) => {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={t('transactions.newTransaction')}
+      title={initialData ? t('transactions.repeatTransaction') : t('transactions.newTransaction')}
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -261,8 +372,34 @@ const TransactionForm = ({ isOpen, onClose, onSuccess }) => {
           </div>
         </div>
 
-        {/* Calculate Button */}
-        <div className="flex justify-center">
+        <div className="flex justify-center flex-col items-center gap-2">
+          {formData.amountIn && formData.currencyInId && (() => {
+            const currency = currencies.find(c => c.id.toString() === formData.currencyInId.toString());
+            const threshold = currency?.highValueThreshold || 10000;
+            if (parseFloat(formData.amountIn) >= threshold) {
+              return (
+                <div className="w-full bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-2">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm text-yellow-700">
+                        {t('transactions.highValueWarning', { threshold: threshold.toLocaleString() })}
+                        <span className="font-bold block mt-1">
+                          Warning: This transaction will be flagged for review.
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           <Button
             type="button"
             variant="secondary"

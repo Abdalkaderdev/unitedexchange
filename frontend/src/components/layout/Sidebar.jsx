@@ -44,10 +44,9 @@ const Sidebar = ({ isOpen, onClose }) => {
       to={item.href}
       onClick={onClose}
       className={({ isActive }) =>
-        `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-          isActive
-            ? 'bg-primary-100 text-primary-700'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+        `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive
+          ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300'
+          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
         }`
       }
     >
@@ -68,28 +67,27 @@ const Sidebar = ({ isOpen, onClose }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 rtl:left-auto rtl:right-0 z-50 h-full w-64 bg-white border-r rtl:border-r-0 rtl:border-l border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          isOpen ? 'translate-x-0 rtl:-translate-x-0' : '-translate-x-full rtl:translate-x-full'
-        }`}
+        className={`fixed top-0 left-0 rtl:left-auto rtl:right-0 z-50 h-full w-64 bg-white dark:bg-gray-800 border-r rtl:border-r-0 rtl:border-l border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0 rtl:-translate-x-0' : '-translate-x-full rtl:translate-x-full'
+          }`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-center h-16 border-b border-gray-200">
-            <h1 className="text-xl font-bold text-primary-600">
+          <div className="flex items-center justify-center h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <h1 className="text-xl font-bold text-primary-600 dark:text-primary-400">
               {t('common.appName')}
             </h1>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto bg-white dark:bg-gray-800">
             {navigation.map((item) => (
               <NavItem key={item.href} item={item} />
             ))}
 
             {isAdmin() && (
               <>
-                <div className="pt-4 mt-4 border-t border-gray-200">
-                  <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                  <p className="px-4 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                     Admin
                   </p>
                 </div>

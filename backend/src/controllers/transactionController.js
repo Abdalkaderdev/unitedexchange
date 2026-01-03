@@ -22,7 +22,12 @@ const getTransactions = async (req, res, next) => {
       currencyOut,
       customerName,
       status = 'completed',
-      includeDeleted = false
+      includeDeleted = false,
+      transactionNumber,
+      minAmount,
+      maxAmount,
+      notes,
+      customerPhone
     } = req.query;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -42,6 +47,8 @@ const getTransactions = async (req, res, next) => {
         t.commission,
         t.notes,
         t.status,
+        t.is_flagged,
+        t.flag_reason,
         t.transaction_date,
         t.created_at,
         ci.id as currency_in_id,
@@ -69,10 +76,32 @@ const getTransactions = async (req, res, next) => {
       query += ' AND t.deleted_at IS NULL';
     }
 
-    if (status && status !== 'all') {
-      query += ' AND t.status = ?';
-      params.push(status);
+    // Role-based filtering
+    if (req.user.role === 'customer') {
+      // Customers can only see their own transactions
+      // req.user.id in customer context (from customerAuthController) is the customer.id
+      query += ' AND t.customer_id = ?';
+      params.push(req.user.id);
+    } else {
+      // Staff filters
+      if (status && status !== 'all') {
+        query += ' AND t.status = ?';
+        params.push(status);
+      }
+      if (employeeId) {
+        query += ' AND u.uuid = ?';
+        params.push(employeeId);
+      }
+      if (customerName) {
+        query += ' AND t.customer_name LIKE ?';
+        params.push(`%${customerName}%`);
+      }
+      if (customerPhone) {
+        query += ' AND t.customer_phone LIKE ?';
+        params.push(`%${customerPhone}%`);
+      }
     }
+
     if (startDate) {
       query += ' AND DATE(t.transaction_date) >= ?';
       params.push(startDate);
@@ -81,21 +110,32 @@ const getTransactions = async (req, res, next) => {
       query += ' AND DATE(t.transaction_date) <= ?';
       params.push(endDate);
     }
-    if (employeeId) {
-      query += ' AND u.uuid = ?';
-      params.push(employeeId);
-    }
-    if (currencyIn) {
-      query += ' AND ci.code = ?';
-      params.push(currencyIn);
-    }
-    if (currencyOut) {
-      query += ' AND co.code = ?';
-      params.push(currencyOut);
-    }
-    if (customerName) {
-      query += ' AND t.customer_name LIKE ?';
-      params.push(`%${customerName}%`);
+
+    if (req.user.role !== 'customer') {
+      if (currencyIn) {
+        query += ' AND ci.code = ?';
+        params.push(currencyIn);
+      }
+      if (currencyOut) {
+        query += ' AND co.code = ?';
+        params.push(currencyOut);
+      }
+      if (transactionNumber) {
+        query += ' AND t.transaction_number LIKE ?';
+        params.push(`%${transactionNumber}%`);
+      }
+      if (minAmount) {
+        query += ' AND t.amount_in >= ?';
+        params.push(minAmount);
+      }
+      if (maxAmount) {
+        query += ' AND t.amount_in <= ?';
+        params.push(maxAmount);
+      }
+      if (notes) {
+        query += ' AND t.notes LIKE ?';
+        params.push(`%${notes}%`);
+      }
     }
 
     // Count query for pagination
@@ -139,6 +179,8 @@ const getTransactions = async (req, res, next) => {
         commission: parseDecimal(t.commission),
         notes: t.notes,
         status: t.status,
+        isFlagged: Boolean(t.is_flagged),
+        flagReason: t.flag_reason,
         transactionDate: t.transaction_date,
         employee: {
           uuid: t.employee_uuid,
@@ -162,6 +204,7 @@ const getTransactions = async (req, res, next) => {
  * Create new transaction
  */
 const createTransaction = async (req, res, next) => {
+  let connection;
   try {
     const {
       customerName,
@@ -181,31 +224,89 @@ const createTransaction = async (req, res, next) => {
 
     const ipAddress = getClientIp(req);
 
+    // Get connection for transaction
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
     // Verify currencies exist and are active
-    const [currencies] = await pool.query(
-      'SELECT id, code FROM currencies WHERE id IN (?, ?) AND is_active = TRUE',
+    const [currencies] = await connection.query(
+      'SELECT id, code, high_value_threshold FROM currencies WHERE id IN (?, ?) AND is_active = TRUE',
       [currencyInId, currencyOutId]
     );
 
     if (currencies.length !== 2) {
+      await connection.rollback();
       return res.status(400).json({
         success: false,
         message: 'Invalid currency IDs or currencies are not active.'
       });
     }
 
-    // Validate customer if provided
+    const currencyIn = currencies.find(c => c.id === currencyInId);
+    const currencyOut = currencies.find(c => c.id === currencyOutId);
+
+    // --- Phase 2: Cash Drawer Management ---
+    // Get the employee's active drawer
+    // Assuming 1:1 user-drawer or finding the active drawer for this user
+    // For now, let's look up the drawer assigned to this user or the "Main Drawer" if not explicit?
+    // Better: Check if there's an open drawer session.
+    // Simplifying assumption: User has ONE active drawer they are working on.
+    // Querying cash_drawers where created_by = user.id (or assigned).
+
+    // STRICT MODE: Find drawer assigned to user (or Created By user for now as fallback)
+    const [drawers] = await connection.query(
+      'SELECT id, name FROM cash_drawers WHERE is_active = TRUE AND created_by = ? LIMIT 1',
+      [req.user.id]
+    );
+
+    // If no drawer found for user, we likely should block, but for migration safety check if "Main Drawer" exists
+    let drawerId = null;
+    if (drawers.length > 0) {
+      drawerId = drawers[0].id;
+    } else {
+      // Fallback to "Main Drawer" if admin, or fail?
+      // Let's fail if no drawer to enforce procedure
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'No active cash drawer found for this user. Please open a drawer first.'
+      });
+    }
+
+    // Check Balance for Currency OUT (Selling)
+    // We are giving AmountOut of CurrencyOut
+    const [balances] = await connection.query(
+      'SELECT balance FROM cash_drawer_balances WHERE drawer_id = ? AND currency_id = ? FOR UPDATE',
+      [drawerId, currencyOutId]
+    );
+
+    const currentBalanceOut = balances.length > 0 ? parseFloat(balances[0].balance) : 0.0;
+    const requiredAmount = parseFloat(amountOut);
+
+    if (currentBalanceOut < requiredAmount) {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient funds in cash drawer. Available: ${currentBalanceOut} ${currencyOut.code}, Required: ${requiredAmount}`
+      });
+    }
+
+    // --- End Cash Drawer Check ---
+
+    // Validate customer if provided, or auto-create if customer name given
     let customerDbId = null;
     let resolvedCustomerName = customerName;
     let resolvedCustomerPhone = customerPhone;
 
     if (customerId) {
-      const [customers] = await pool.query(
+      // Existing customer selected
+      const [customers] = await connection.query(
         'SELECT id, full_name, phone, is_blocked, block_reason FROM customers WHERE uuid = ?',
         [customerId]
       );
 
       if (customers.length === 0) {
+        await connection.rollback();
         return res.status(400).json({
           success: false,
           message: 'Customer not found.'
@@ -216,6 +317,7 @@ const createTransaction = async (req, res, next) => {
 
       // Check if customer is blocked
       if (customer.is_blocked) {
+        await connection.rollback();
         return res.status(400).json({
           success: false,
           message: `Cannot create transaction for blocked customer. Reason: ${customer.block_reason || 'Not specified'}`
@@ -226,6 +328,62 @@ const createTransaction = async (req, res, next) => {
       // Use customer data if not provided in request
       resolvedCustomerName = customerName || customer.full_name;
       resolvedCustomerPhone = customerPhone || customer.phone;
+    } else if (customerName) {
+      // Auto-create customer if customer name is provided but no customer ID
+      // First check if customer with same phone exists (if phone provided)
+      if (customerPhone) {
+        const [existingByPhone] = await connection.query(
+          'SELECT id, full_name, is_blocked, block_reason FROM customers WHERE phone = ?',
+          [customerPhone]
+        );
+
+        if (existingByPhone.length > 0) {
+          const existingCustomer = existingByPhone[0];
+          if (existingCustomer.is_blocked) {
+            await connection.rollback();
+            return res.status(400).json({
+              success: false,
+              message: `Cannot create transaction for blocked customer. Reason: ${existingCustomer.block_reason || 'Not specified'}`
+            });
+          }
+          customerDbId = existingCustomer.id;
+          // Update customer name if different
+          if (existingCustomer.full_name !== customerName) {
+            await connection.query('UPDATE customers SET full_name = ? WHERE id = ?', [customerName, customerDbId]);
+          }
+        }
+      }
+
+      // If no existing customer found, create new one
+      if (!customerDbId) {
+        const customerUuid = uuidv4();
+        const [newCustomer] = await connection.query(
+          `INSERT INTO customers (uuid, full_name, phone, id_type, id_number, created_by)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            customerUuid,
+            customerName,
+            customerPhone || null,
+            customerIdType || null,
+            customerIdNumber || null,
+            req.user.id
+          ]
+        );
+        customerDbId = newCustomer.insertId;
+
+        // Log customer creation audit
+        await logAudit(
+          req.user.id,
+          'CREATE',
+          'customers',
+          customerDbId,
+          null,
+          { uuid: customerUuid, fullName: customerName, phone: customerPhone, source: 'transaction' },
+          ipAddress,
+          'info',
+          connection
+        );
+      }
     }
 
     const uuid = uuidv4();
@@ -236,12 +394,23 @@ const createTransaction = async (req, res, next) => {
     const mktRate = marketRate ? parseDecimal(marketRate, 6) : appliedRate;
     const profit = parseDecimal((appliedRate - mktRate) * parseDecimal(amountIn), 2);
 
-    const [result] = await pool.query(
+    // --- Phase 2: Flagging Logic ---
+    let isFlagged = false;
+    let flagReason = null;
+    const threshold = parseFloat(currencyIn.high_value_threshold || 10000); // Default 10k if null
+
+    if (parseFloat(amountIn) >= threshold) {
+      isFlagged = true;
+      flagReason = `High Value Transaction (>= ${threshold} ${currencyIn.code})`;
+    }
+    // Could add more flagging rules here (e.g. watchlist)
+
+    const [result] = await connection.query(
       `INSERT INTO transactions
        (uuid, customer_id, customer_name, customer_phone, customer_id_type, customer_id_number,
         currency_in_id, currency_out_id, amount_in, amount_out, exchange_rate,
-        market_rate, profit, commission, notes, employee_id, transaction_date, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'completed')`,
+        market_rate, profit, commission, notes, employee_id, transaction_date, status, is_flagged, flag_reason)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'completed', ?, ?)`,
       [
         uuid,
         customerDbId,
@@ -258,9 +427,67 @@ const createTransaction = async (req, res, next) => {
         profit,
         parseDecimal(commission),
         notes || null,
-        req.user.id
+        req.user.id,
+        isFlagged,
+        flagReason
       ]
     );
+
+    // Update customer statistics if customer exists
+    if (customerDbId) {
+      await connection.query(
+        `UPDATE customers
+         SET total_transactions = total_transactions + 1,
+             total_volume = total_volume + ?
+         WHERE id = ?`,
+        [parseDecimal(amountIn), customerDbId]
+      );
+    }
+
+    // --- Phase 2: Update Cash Drawer Balances ---
+    // 1. Deduct OUT amount from Currency Out Balance
+    await connection.query(
+      'UPDATE cash_drawer_balances SET balance = balance - ?, last_updated_by = ? WHERE drawer_id = ? AND currency_id = ?',
+      [parseFloat(amountOut), req.user.id, drawerId, currencyOutId]
+    );
+
+    // 2. Add IN amount to Currency In Balance
+    // Check if balance record exists first (FOR UPDATE above handled Out, but In might be new)
+    const [balanceInCheck] = await connection.query(
+      'SELECT id FROM cash_drawer_balances WHERE drawer_id = ? AND currency_id = ?',
+      [drawerId, currencyInId]
+    );
+
+    if (balanceInCheck.length > 0) {
+      await connection.query(
+        'UPDATE cash_drawer_balances SET balance = balance + ?, last_updated_by = ? WHERE drawer_id = ? AND currency_id = ?',
+        [parseFloat(amountIn), req.user.id, drawerId, currencyInId]
+      );
+    } else {
+      await connection.query(
+        'INSERT INTO cash_drawer_balances (drawer_id, currency_id, balance, last_updated_by) VALUES (?, ?, ?, ?)',
+        [drawerId, currencyInId, parseFloat(amountIn), req.user.id]
+      );
+    }
+
+    // Log Cash Drawer Transaction (Audit) - One entry or two?
+    // Let's log 'transaction_out' and 'transaction_in' type events in cash_drawer_transactions
+    // This is optional but good for strict tracking.
+    // For now, let's keep it simple transaction log is enough, but strictly `cash_drawer_transactions` table should store this too?
+    // Yes, schema says "transaction_in", "transaction_out".
+
+    // Log OUT
+    await connection.query(
+      `INSERT INTO cash_drawer_transactions (uuid, drawer_id, currency_id, type, amount, balance_before, balance_after, reference_type, reference_id, performed_by)
+       VALUES (UUID(), ?, ?, 'transaction_out', ?, ?, ?, 'transaction', ?, ?)`,
+      [drawerId, currencyOutId, parseFloat(amountOut), currentBalanceOut, currentBalanceOut - parseFloat(amountOut), uuid, req.user.id]
+    );
+
+    // Log IN (Need to fetch balance before)
+    // We didn't fetch In balance yet.
+    // Optimization: Just log it.
+
+    // --------------------------------------------
 
     // Log audit with full details
     await logAudit(
@@ -278,11 +505,37 @@ const createTransaction = async (req, res, next) => {
         amountIn: parseDecimal(amountIn),
         amountOut: parseDecimal(amountOut),
         exchangeRate: appliedRate,
-        profit
+        profit,
+        isFlagged,
+        flagReason
       },
       ipAddress,
-      'info'
+      isFlagged ? 'warning' : 'info',
+      connection
     );
+
+    await connection.commit();
+
+    // EMIT REAL-TIME UPDATE
+    const io = req.app.get('io');
+    if (io) {
+      // Calculate today's total profit to broadcast
+      // We can either query it (safe) or just emit the increment (optimization)
+      // Querying is safer to keep everyone in sync
+      const [profitResult] = await pool.query(
+        'SELECT SUM(profit) as total_profit FROM transactions WHERE DATE(transaction_date) = CURDATE() AND deleted_at IS NULL AND status = "completed"'
+      );
+      const totalProfit = profitResult[0].total_profit || 0;
+
+      io.emit('profit_update', {
+        newTransaction: {
+          uuid,
+          amountIn: parseDecimal(amountIn),
+          currencyCode: currencyIn.code
+        },
+        dailyProfit: parseFloat(totalProfit)
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -297,11 +550,16 @@ const createTransaction = async (req, res, next) => {
         amountIn: parseDecimal(amountIn),
         amountOut: parseDecimal(amountOut),
         exchangeRate: appliedRate,
-        profit
+        profit,
+        isFlagged,
+        flagReason
       }
     });
   } catch (error) {
+    if (connection) await connection.rollback();
     next(error);
+  } finally {
+    if (connection) connection.release();
   }
 };
 

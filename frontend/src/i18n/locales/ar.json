@@ -33,7 +33,10 @@
     "notes": "ملاحظات",
     "name": "الاسم",
     "view": "عرض",
-    "required": "هذا الحقل مطلوب"
+    "required": "هذا الحقل مطلوب",
+    "allStatus": "كل الحالات",
+    "select": "اختر",
+    "none": "لا شيء"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -89,6 +92,19 @@
       "transactionsByEmployee": "المعاملات حسب الموظف",
       "transactions": "المعاملات",
       "profit": "الربح"
+    },
+    "currencyCalculator": {
+      "title": "حاسبة العملات",
+      "from": "من",
+      "to": "إلى",
+      "amount": "المبلغ",
+      "result": "المبلغ المحول",
+      "swap": "تبديل العملات",
+      "buyRate": "سعر الشراء",
+      "sellRate": "سعر البيع",
+      "currentRate": "سعر الصرف",
+      "noRateAvailable": "لا يوجد سعر صرف متاح لزوج العملات هذا",
+      "sameCurrencyWarning": "يرجى اختيار عملات مختلفة للتحويل"
     }
   },
   "transactions": {
@@ -421,7 +437,14 @@
     "shiftStarted": "بدأت المناوبة بنجاح",
     "shiftEnded": "انتهت المناوبة بنجاح",
     "shiftHandover": "تم تسليم المناوبة بنجاح",
+    "shiftHandedOver": "تم تسليم المناوبة بنجاح",
     "shiftAbandoned": "تم إلغاء المناوبة",
+    "confirmAbandon": "هل أنت متأكد من إلغاء هذه المناوبة؟ لا يمكن التراجع عن هذا الإجراء.",
+    "active": "نشطة",
+    "completed": "مكتملة",
+    "abandoned": "ملغاة",
+    "handedOver": "تم التسليم",
+    "notesPlaceholder": "أضف ملاحظات حول هذه المناوبة...",
     "statusTypes": {
       "active": "نشطة",
       "completed": "مكتملة",

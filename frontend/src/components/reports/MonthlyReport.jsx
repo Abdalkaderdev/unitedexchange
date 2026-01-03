@@ -55,8 +55,8 @@ const MonthlyReport = () => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await userService.getUsers();
-      const userList = response.users || response.data || response || [];
+      const response = await userService.getEmployees();
+      const userList = response.data || [];
       setEmployees(userList);
     } catch (error) {
       console.error('Failed to fetch employees:', error);

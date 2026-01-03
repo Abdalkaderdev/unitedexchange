@@ -60,7 +60,7 @@ const AuditLogsPage = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await userService.getUsers();
+      const response = await userService.getEmployees();
       if (response.success) {
         setUsers(response.data || []);
       }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { ArrowDownTrayIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
@@ -41,25 +41,17 @@ const DailyReport = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
-
-  useEffect(() => {
-    fetchReport();
-  }, [filters]);
-
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
     try {
-      const response = await userService.getUsers();
-      const userList = response.users || response.data || response || [];
+      const response = await userService.getEmployees();
+      const userList = response.data || [];
       setEmployees(userList);
     } catch (error) {
       console.error('Failed to fetch employees:', error);
     }
-  };
+  }, []);
 
-  const fetchReport = async () => {
+  const fetchReport = useCallback(async () => {
     setLoading(true);
     try {
       const response = await reportService.getDailyReport(
@@ -81,7 +73,7 @@ const DailyReport = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters.date, filters.employeeId]);
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -124,9 +116,8 @@ const DailyReport = () => {
       header: t('reports.type'),
       accessor: 'type',
       render: (value) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          value === 'buy' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-        }`}>
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${value === 'buy' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+          }`}>
           {t(`reports.${value}`)}
         </span>
       )

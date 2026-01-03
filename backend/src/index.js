@@ -17,7 +17,32 @@ const { sanitizeAll, securityHeaders } = require('./middleware/sanitize');
 const { metricsMiddleware } = require('./middleware/metrics');
 const logger = require('./utils/logger');
 
+const http = require('http');
+const socketIo = require('socket.io');
+
 const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.IO
+const io = socketIo(server, {
+  cors: {
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+// Socket auth middleware (optional, for now public info)
+io.on('connection', (socket) => {
+  // console.log('New client connected', socket.id);
+  socket.on('disconnect', () => {
+    // console.log('Client disconnected', socket.id);
+  });
+});
+
+// Make io available in requests (optional, but we export it for controllers)
+app.set('io', io);
+
 const PORT = process.env.PORT || 5000;
 
 // Trust proxy for rate limiting behind nginx
@@ -80,7 +105,7 @@ const startServer = async () => {
     process.exit(1);
   }
 
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`);
     logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
     logger.info(`API available at: http://localhost:${PORT}/api`);
@@ -93,4 +118,5 @@ const startServer = async () => {
 
 startServer();
 
-module.exports = app;
+// Export app and io for usage elsewhere if needed
+module.exports = { app, io };

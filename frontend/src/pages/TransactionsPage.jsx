@@ -11,6 +11,7 @@ const TransactionsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [initialData, setInitialData] = useState(null);
 
   useEffect(() => {
     // Check if we should open the form on page load (from dashboard quick action)
@@ -23,11 +24,18 @@ const TransactionsPage = () => {
   }, [searchParams, setSearchParams]);
 
   const handleOpenForm = () => {
+    setInitialData(null);
     setIsFormOpen(true);
   };
 
   const handleCloseForm = () => {
     setIsFormOpen(false);
+    setInitialData(null);
+  };
+
+  const handleRepeatTransaction = (transaction) => {
+    setInitialData(transaction);
+    setIsFormOpen(true);
   };
 
   const handleTransactionCreated = () => {
@@ -54,13 +62,17 @@ const TransactionsPage = () => {
       </div>
 
       {/* Transaction List */}
-      <TransactionList onRefresh={refreshKey} />
+      <TransactionList
+        onRefresh={refreshKey}
+        onRepeat={handleRepeatTransaction}
+      />
 
       {/* Transaction Form Modal */}
       <TransactionForm
         isOpen={isFormOpen}
         onClose={handleCloseForm}
         onSuccess={handleTransactionCreated}
+        initialData={initialData}
       />
     </div>
   );

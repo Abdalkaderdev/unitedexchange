@@ -391,6 +391,96 @@ const getDashboardStats = async (req, res, next) => {
 };
 
 /**
+ * Get dashboard chart data
+ * Returns data for daily trend (7 days), profit by currency, and transactions by currency pair
+ */
+const getDashboardCharts = async (req, res, next) => {
+  try {
+    // Get daily transaction volume and profit for the past 7 days
+    const [dailyTrend] = await pool.query(`
+      SELECT
+        DATE(t.transaction_date) as date,
+        COUNT(*) as transactions,
+        COALESCE(SUM(t.profit), 0) as profit
+      FROM transactions t
+      WHERE t.transaction_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+        AND t.deleted_at IS NULL
+        AND t.status = 'completed'
+      GROUP BY DATE(t.transaction_date)
+      ORDER BY date ASC
+    `);
+
+    // Fill in missing days with zero values
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const existingData = dailyTrend.find(d => {
+        const dDate = new Date(d.date).toISOString().split('T')[0];
+        return dDate === dateStr;
+      });
+      last7Days.push({
+        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        transactions: existingData ? parseInt(existingData.transactions) : 0,
+        profit: existingData ? parseDecimal(existingData.profit) : 0
+      });
+    }
+
+    // Get profit by currency (currency in) for the current month
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+
+    const [profitByCurrency] = await pool.query(`
+      SELECT
+        ci.code as currency,
+        COALESCE(SUM(t.profit), 0) as profit
+      FROM transactions t
+      JOIN currencies ci ON t.currency_in_id = ci.id
+      WHERE YEAR(t.transaction_date) = ? AND MONTH(t.transaction_date) = ?
+        AND t.deleted_at IS NULL
+        AND t.status = 'completed'
+      GROUP BY ci.id, ci.code
+      ORDER BY profit DESC
+      LIMIT 10
+    `, [currentYear, currentMonth]);
+
+    // Get transactions distribution by currency pair (currency in -> currency out)
+    const [transactionsByCurrencyPair] = await pool.query(`
+      SELECT
+        CONCAT(ci.code, '/', co.code) as pair,
+        COUNT(*) as value
+      FROM transactions t
+      JOIN currencies ci ON t.currency_in_id = ci.id
+      JOIN currencies co ON t.currency_out_id = co.id
+      WHERE YEAR(t.transaction_date) = ? AND MONTH(t.transaction_date) = ?
+        AND t.deleted_at IS NULL
+        AND t.status = 'completed'
+      GROUP BY ci.id, co.id, ci.code, co.code
+      ORDER BY value DESC
+      LIMIT 8
+    `, [currentYear, currentMonth]);
+
+    res.json({
+      success: true,
+      data: {
+        dailyTrend: last7Days,
+        profitByCurrency: profitByCurrency.map(c => ({
+          name: c.currency,
+          profit: parseDecimal(c.profit)
+        })),
+        transactionsByCurrencyPair: transactionsByCurrencyPair.map(p => ({
+          name: p.pair,
+          value: parseInt(p.value)
+        }))
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Generate daily closing report (end-of-day summary)
  * Admin only - creates a permanent record of the day's transactions
  */
@@ -545,16 +635,16 @@ const generateDailyClosing = async (req, res, next) => {
 };
 
 /**
- * Get daily closing report by date or UUID
+ * Get daily closing report by date or ID
  */
 const getDailyClosing = async (req, res, next) => {
   try {
-    const { date, uuid } = req.query;
+    const { date, id } = req.query;
 
-    if (!date && !uuid) {
+    if (!date && !id) {
       return res.status(400).json({
         success: false,
-        message: 'Either date or uuid is required.'
+        message: 'Either date or id is required.'
       });
     }
 
@@ -568,9 +658,9 @@ const getDailyClosing = async (req, res, next) => {
     `;
     const params = [];
 
-    if (uuid) {
-      query += ' AND r.uuid = ?';
-      params.push(uuid);
+    if (id) {
+      query += ' AND r.id = ?';
+      params.push(id);
     } else {
       query += ' AND r.report_date = ?';
       params.push(date);
@@ -590,7 +680,7 @@ const getDailyClosing = async (req, res, next) => {
     res.json({
       success: true,
       data: {
-        uuid: r.uuid,
+        id: r.id,
         reportDate: r.report_date,
         totalTransactions: r.total_transactions,
         cancelledTransactions: r.cancelled_transactions,
@@ -620,7 +710,7 @@ const listDailyClosings = async (req, res, next) => {
 
     let query = `
       SELECT
-        r.uuid,
+        r.id,
         r.report_date,
         r.total_transactions,
         r.cancelled_transactions,
@@ -657,7 +747,7 @@ const listDailyClosings = async (req, res, next) => {
     res.json({
       success: true,
       data: reports.map(r => ({
-        uuid: r.uuid,
+        id: r.id,
         reportDate: r.report_date,
         totalTransactions: r.total_transactions,
         cancelledTransactions: r.cancelled_transactions,
@@ -899,7 +989,7 @@ const getProfitLossReport = async (req, res, next) => {
     let currencyQuery = `
       SELECT
         ci.code as currency_code,
-        ci.uuid as currency_uuid,
+        ci.id as currency_id,
         COUNT(CASE WHEN t.amount_in > t.amount_out THEN 1 END) as buy_count,
         COUNT(CASE WHEN t.amount_out > t.amount_in THEN 1 END) as sell_count,
         COALESCE(SUM(t.profit), 0) as total_profit
@@ -1206,7 +1296,7 @@ const generateCustomReport = async (req, res, next) => {
         params.push(filters.employeeId);
       }
       if (filters.currencyId) {
-        query += ' AND ci.uuid = ?';
+        query += ' AND ci.id = ?';
         params.push(filters.currencyId);
       }
       if (filters.minAmount) {
@@ -1246,10 +1336,198 @@ const generateCustomReport = async (req, res, next) => {
   }
 };
 
+/**
+ * Export custom report
+ */
+const exportCustomReport = async (req, res, next) => {
+  try {
+    const { startDate, endDate, groupBy, metrics, filters, format = 'xlsx' } = req.body;
+
+    const start = startDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    const end = endDate || new Date().toISOString().split('T')[0];
+
+    // Build SELECT clause based on requested metrics
+    const availableMetrics = {
+      transaction_count: 'COUNT(*) as transaction_count',
+      total_profit: 'COALESCE(SUM(t.profit), 0) as total_profit',
+      total_commission: 'COALESCE(SUM(t.commission), 0) as total_commission',
+      total_amount_in: 'COALESCE(SUM(t.amount_in), 0) as total_amount_in',
+      total_amount_out: 'COALESCE(SUM(t.amount_out), 0) as total_amount_out',
+      avg_profit: 'COALESCE(AVG(t.profit), 0) as avg_profit',
+      avg_exchange_rate: 'COALESCE(AVG(t.exchange_rate), 0) as avg_exchange_rate'
+    };
+
+    const selectedMetrics = (metrics || ['transaction_count', 'total_profit'])
+      .filter(m => availableMetrics[m])
+      .map(m => availableMetrics[m]);
+
+    if (selectedMetrics.length === 0) {
+      selectedMetrics.push(availableMetrics.transaction_count);
+    }
+
+    // Build GROUP BY clause
+    const availableGroupings = {
+      day: 'DATE(t.transaction_date)',
+      week: 'YEARWEEK(t.transaction_date)',
+      month: 'DATE_FORMAT(t.transaction_date, "%Y-%m")',
+      employee: 'u.full_name',
+      currency_in: 'ci.code',
+      currency_out: 'co.code'
+    };
+
+    const groupByField = availableGroupings[groupBy] || availableGroupings.day;
+    const groupByAlias = groupBy || 'day';
+
+    let query = `
+      SELECT
+        ${groupByField} as ${groupByAlias},
+        ${selectedMetrics.join(', ')}
+      FROM transactions t
+      JOIN currencies ci ON t.currency_in_id = ci.id
+      JOIN currencies co ON t.currency_out_id = co.id
+      JOIN users u ON t.employee_id = u.id
+      WHERE t.transaction_date BETWEEN ? AND DATE_ADD(?, INTERVAL 1 DAY)
+        AND t.deleted_at IS NULL
+        AND t.status = 'completed'
+    `;
+    const params = [start, end];
+
+    // Apply filters
+    if (filters) {
+      if (filters.employeeId) {
+        query += ' AND u.uuid = ?';
+        params.push(filters.employeeId);
+      }
+      if (filters.currencyId) {
+        query += ' AND ci.id = ?';
+        params.push(filters.currencyId);
+      }
+      if (filters.minAmount) {
+        query += ' AND t.amount_in >= ?';
+        params.push(filters.minAmount);
+      }
+      if (filters.maxAmount) {
+        query += ' AND t.amount_in <= ?';
+        params.push(filters.maxAmount);
+      }
+    }
+
+    query += ` GROUP BY ${groupByField} ORDER BY ${groupByField}`;
+
+    const [results] = await pool.query(query, params);
+
+    // Format data for export
+    const formattedData = results.map(r => {
+      const row = { [groupByAlias]: r[groupByAlias] };
+      Object.keys(r).forEach(key => {
+        if (key !== groupByAlias) {
+          row[key] = typeof r[key] === 'number' ? parseDecimal(r[key]) : r[key];
+        }
+      });
+      return row;
+    });
+
+    const filename = `custom-report-${start}-to-${end}`;
+
+    if (format === 'csv') {
+      const csv = exportService.generateCSV(formattedData);
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}.csv`);
+      return res.send(csv);
+    } else if (format === 'pdf') {
+      const pdf = await exportService.generatePDF(formattedData, {
+        title: 'Custom Report',
+        subtitle: `${start} to ${end}`
+      });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}.pdf`);
+      return res.send(pdf);
+    } else {
+      const excel = exportService.generateExcel(formattedData, 'Custom Report');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}.xlsx`);
+      return res.send(excel);
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get employee leaderboard (Top Profit & Top Transactions)
+ */
+const getLeaderboard = async (req, res, next) => {
+  try {
+    const { period = 'month' } = req.query;
+    let dateCondition = '';
+    const params = [];
+
+    if (period === 'month') {
+      dateCondition = 'AND YEAR(t.transaction_date) = YEAR(CURDATE()) AND MONTH(t.transaction_date) = MONTH(CURDATE())';
+    } else if (period === 'today') {
+      dateCondition = 'AND DATE(t.transaction_date) = CURDATE()';
+    } else if (period === 'year') {
+      dateCondition = 'AND YEAR(t.transaction_date) = YEAR(CURDATE())';
+    }
+
+    // Top Profit
+    const [topProfit] = await pool.query(`
+      SELECT
+        u.full_name,
+        COALESCE(SUM(t.profit), 0) as value,
+        COUNT(*) as count
+      FROM transactions t
+      JOIN users u ON t.employee_id = u.id
+      WHERE t.deleted_at IS NULL
+        AND t.status = 'completed'
+        ${dateCondition}
+      GROUP BY u.id
+      ORDER BY value DESC
+      LIMIT 5
+    `, params);
+
+    // Most Active (Transaction Count)
+    const [mostActive] = await pool.query(`
+      SELECT
+        u.full_name,
+        COUNT(*) as value,
+        COALESCE(SUM(t.profit), 0) as profit
+      FROM transactions t
+      JOIN users u ON t.employee_id = u.id
+      WHERE t.deleted_at IS NULL
+        AND t.status = 'completed'
+        ${dateCondition}
+      GROUP BY u.id
+      ORDER BY value DESC
+      LIMIT 5
+    `, params);
+
+    res.json({
+      success: true,
+      data: {
+        period,
+        topProfit: topProfit.map(e => ({
+          name: e.full_name,
+          value: parseDecimal(e.value),
+          subValue: parseInt(e.count) + ' txns'
+        })),
+        mostActive: mostActive.map(e => ({
+          name: e.full_name,
+          value: parseInt(e.value),
+          subValue: '$' + parseDecimal(e.profit)
+        }))
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDailyReport,
   getMonthlyReport,
   getDashboardStats,
+  getDashboardCharts,
   generateDailyClosing,
   getDailyClosing,
   listDailyClosings,
@@ -1258,5 +1536,7 @@ module.exports = {
   getProfitLossReport,
   exportProfitLossReport,
   exportTransactions,
-  generateCustomReport
+  generateCustomReport,
+  getLeaderboard,
+  exportCustomReport,
 };

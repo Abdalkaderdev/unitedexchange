@@ -49,6 +49,16 @@ const cashDrawerService = {
   getAlerts: async () => {
     const response = await api.get('/cash-drawers/alerts');
     return response.data;
+  },
+
+  getStatus: async (id) => {
+    const response = await api.get(`/cash-drawers/${id}/status`);
+    return response.data;
+  },
+
+  submitClosing: async (drawerId, data) => {
+    const response = await api.post(`/cash-drawers/${drawerId}/close`, data);
+    return response.data;
   }
 };
 

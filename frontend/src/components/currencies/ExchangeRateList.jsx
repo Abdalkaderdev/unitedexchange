@@ -36,13 +36,13 @@ const ExchangeRateList = ({ rates, loading }) => {
   const columns = [
     {
       header: t('currencies.fromCurrency'),
-      accessor: 'from_currency',
+      accessor: 'fromCurrency',
       render: (value, row) => (
         <div className="flex items-center">
-          <span className="font-mono font-semibold text-gray-900">{value}</span>
-          {row.from_currency_name && (
+          <span className="font-mono font-semibold text-gray-900">{value?.code || value}</span>
+          {value?.name && (
             <span className="ml-2 text-sm text-gray-500">
-              ({row.from_currency_name})
+              ({value.name})
             </span>
           )}
         </div>
@@ -50,13 +50,13 @@ const ExchangeRateList = ({ rates, loading }) => {
     },
     {
       header: t('currencies.toCurrency'),
-      accessor: 'to_currency',
+      accessor: 'toCurrency',
       render: (value, row) => (
         <div className="flex items-center">
-          <span className="font-mono font-semibold text-gray-900">{value}</span>
-          {row.to_currency_name && (
+          <span className="font-mono font-semibold text-gray-900">{value?.code || value}</span>
+          {value?.name && (
             <span className="ml-2 text-sm text-gray-500">
-              ({row.to_currency_name})
+              ({value.name})
             </span>
           )}
         </div>
@@ -64,7 +64,7 @@ const ExchangeRateList = ({ rates, loading }) => {
     },
     {
       header: t('currencies.buyRate'),
-      accessor: 'buy_rate',
+      accessor: 'buyRate',
       render: (value) => (
         <span className="font-mono text-green-600 font-medium">
           {formatRate(value)}
@@ -73,7 +73,7 @@ const ExchangeRateList = ({ rates, loading }) => {
     },
     {
       header: t('currencies.sellRate'),
-      accessor: 'sell_rate',
+      accessor: 'sellRate',
       render: (value) => (
         <span className="font-mono text-blue-600 font-medium">
           {formatRate(value)}
@@ -82,7 +82,7 @@ const ExchangeRateList = ({ rates, loading }) => {
     },
     {
       header: t('currencies.lastUpdated'),
-      accessor: 'updated_at',
+      accessor: 'updatedAt',
       render: (value) => (
         <span className="text-sm text-gray-500">
           {formatDate(value)}
@@ -91,7 +91,7 @@ const ExchangeRateList = ({ rates, loading }) => {
     },
     {
       header: t('currencies.updatedBy'),
-      accessor: 'updated_by_name',
+      accessor: 'updatedByName',
       render: (value) => (
         <span className="text-sm text-gray-700">
           {value || '-'}
@@ -126,16 +126,8 @@ const ExchangeRateList = ({ rates, loading }) => {
       <RateHistoryModal
         isOpen={historyModalOpen}
         onClose={closeHistoryModal}
-        fromCurrency={selectedRate ? {
-          id: selectedRate.from_currency_id,
-          code: selectedRate.from_currency,
-          name: selectedRate.from_currency_name
-        } : null}
-        toCurrency={selectedRate ? {
-          id: selectedRate.to_currency_id,
-          code: selectedRate.to_currency,
-          name: selectedRate.to_currency_name
-        } : null}
+        fromCurrency={selectedRate?.fromCurrency || null}
+        toCurrency={selectedRate?.toCurrency || null}
       />
     </>
   );

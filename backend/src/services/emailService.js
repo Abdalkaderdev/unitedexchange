@@ -147,18 +147,18 @@ const sendReportEmail = async (to, reportType, data, format, fileBuffer) => {
 const generateReportEmailTemplate = (reportName, data, date) => {
   const summaryRows = data.summary
     ? Object.entries(data.summary)
-        .map(([key, value]) => {
-          const formattedKey = key
-            .replace(/([A-Z])/g, ' $1')
-            .replace(/^./, str => str.toUpperCase());
-          return `
+      .map(([key, value]) => {
+        const formattedKey = key
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/^./, str => str.toUpperCase());
+        return `
             <tr>
               <td style="padding: 8px 16px; border-bottom: 1px solid #e0e0e0; font-weight: 500;">${formattedKey}</td>
               <td style="padding: 8px 16px; border-bottom: 1px solid #e0e0e0; text-align: right;">${value}</td>
             </tr>
           `;
-        })
-        .join('')
+      })
+      .join('')
     : '';
 
   return `
@@ -289,11 +289,135 @@ const sendScheduleNotification = async (to, scheduleName, status, details = {}) 
   return sendEmail(to, subject, html);
 };
 
+/**
+ * Send rate alert email
+ */
+const sendRateAlertEmail = async (to, userName, alertData) => {
+  const { fromCurrency, toCurrency, rate, targetRate, condition } = alertData;
+  const subject = `Rate Alert: ${fromCurrency}/${toCurrency} is ${condition} ${targetRate}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: Arial, sans-serif; padding: 20px;">
+      <h2>Rate Alert Triggered</h2>
+      <p>Hello ${userName},</p>
+      <p>Your rate alert for <strong>${fromCurrency}/${toCurrency}</strong> has been triggered.</p>
+      
+      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Current Rate:</strong> ${rate}</p>
+        <p style="margin: 5px 0;"><strong>Target:</strong> ${condition} ${targetRate}</p>
+      </div>
+
+      <p>Login to your dashboard to manage your alerts.</p>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(to, subject, html);
+};
+
+/**
+ * Send transaction receipt email
+ */
+const sendReceiptEmail = async (to, transactionData) => {
+  const {
+    transactionNumber,
+    customerName,
+    amountIn,
+    currencyIn,
+    amountOut,
+    currencyOut,
+    exchangeRate,
+    date,
+    employeeName,
+    status
+  } = transactionData;
+
+  const subject = `Receipt for Transaction ${transactionNumber}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .header { text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
+        .header h1 { color: #2563eb; margin: 0; }
+        .details { margin-bottom: 20px; }
+        .details table { width: 100%; border-collapse: collapse; }
+        .details td { padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
+        .details td:first-child { font-weight: bold; color: #666; width: 40%; }
+        .details td:last-child { text-align: right; }
+        .amount-box { background-color: #f8fafc; padding: 15px; border-radius: 5px; text-align: center; margin-bottom: 20px; }
+        .amount-box h2 { margin: 0; color: #1e293b; }
+        .amount-box p { margin: 5px 0 0; color: #64748b; }
+        .footer { text-align: center; font-size: 12px; color: #999; margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>United Exchange</h1>
+          <p>Transaction Receipt</p>
+        </div>
+
+        <div class="amount-box">
+          <h2>${amountIn} ${currencyIn}</h2>
+          <p>Exchanged to ${amountOut} ${currencyOut}</p>
+        </div>
+
+        <div class="details">
+          <table>
+            <tr>
+              <td>Transaction No.</td>
+              <td>${transactionNumber}</td>
+            </tr>
+            <tr>
+              <td>Date</td>
+              <td>${new Date(date).toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td>Customer</td>
+              <td>${customerName}</td>
+            </tr>
+            <tr>
+              <td>Exchange Rate</td>
+              <td>${exchangeRate}</td>
+            </tr>
+            <tr>
+              <td>Served By</td>
+              <td>${employeeName}</td>
+            </tr>
+            <tr>
+              <td>Status</td>
+              <td>${status.toUpperCase()}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="footer">
+          <p>Thank you for choosing United Exchange.</p>
+          <p>For any inquiries, please contact support.</p>
+          <p>&copy; ${new Date().getFullYear()} United Exchange. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(to, subject, html);
+};
+
 module.exports = {
   initTransporter,
   verifyConnection,
   sendEmail,
   sendReportEmail,
   sendScheduleNotification,
+  sendRateAlertEmail,
+  sendReceiptEmail, // Export new function
   generateReportEmailTemplate
 };

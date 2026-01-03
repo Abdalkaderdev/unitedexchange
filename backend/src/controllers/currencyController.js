@@ -4,12 +4,13 @@
  */
 const { pool } = require('../config/database');
 const { logAudit, getClientIp, parseDecimal } = require('../utils/helpers');
+const { checkAlerts } = require('./rateAlertController');
 
 const getCurrencies = async (req, res, next) => {
   try {
     const { active } = req.query;
 
-    let query = 'SELECT id, code, name, symbol, is_active, created_at, updated_at FROM currencies';
+    let query = 'SELECT id, code, name, symbol, high_value_threshold, is_active, created_at, updated_at FROM currencies';
     const params = [];
 
     if (active !== undefined) {
@@ -28,6 +29,7 @@ const getCurrencies = async (req, res, next) => {
         code: c.code,
         name: c.name,
         symbol: c.symbol,
+        highValueThreshold: parseDecimal(c.high_value_threshold),
         isActive: c.is_active,
         createdAt: c.created_at,
         updatedAt: c.updated_at
@@ -283,6 +285,14 @@ const setExchangeRate = async (req, res, next) => {
       action === 'RATE_CHANGE' ? 'warning' : 'info'
     );
 
+    // Check for alerts (async, don't await)
+    checkAlerts([{
+      fromCurrencyId,
+      toCurrencyId,
+      buyRate: parsedBuyRate,
+      sellRate: parsedSellRate
+    }]);
+
     res.json({
       success: true,
       message: 'Exchange rate saved successfully.',
@@ -404,6 +414,14 @@ const bulkUpdateRates = async (req, res, next) => {
     }
 
     await connection.commit();
+
+    // Check for alerts (async)
+    checkAlerts(results.map(r => ({
+      fromCurrencyId: r.fromCurrencyId,
+      toCurrencyId: r.toCurrencyId,
+      buyRate: r.buyRate,
+      sellRate: r.sellRate
+    })));
 
     // Log bulk audit
     await logAudit(

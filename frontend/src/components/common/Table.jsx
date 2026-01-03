@@ -6,11 +6,11 @@ const Table = ({ columns, data, loading, emptyMessage }) => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="animate-pulse">
-          <div className="h-12 bg-gray-100" />
+          <div className="h-12 bg-gray-100 dark:bg-gray-700" />
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 border-t border-gray-200 bg-gray-50" />
+            <div key={i} className="h-16 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800" />
           ))}
         </div>
       </div>
@@ -18,10 +18,10 @@ const Table = ({ columns, data, loading, emptyMessage }) => {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
               {columns.map((column, index) => (
                 <th
@@ -34,19 +34,19 @@ const Table = ({ columns, data, loading, emptyMessage }) => {
               ))}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {data.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="px-6 py-12 text-center text-gray-500"
+                  className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
                 >
                   {emptyMessage || t('common.noData')}
                 </td>
               </tr>
             ) : (
               data.map((row, rowIndex) => (
-                <tr key={rowIndex} className="hover:bg-gray-50">
+                <tr key={rowIndex} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   {columns.map((column, colIndex) => (
                     <td key={colIndex} className="table-cell">
                       {column.render
@@ -68,7 +68,7 @@ export const Pagination = ({ page, totalPages, onPageChange }) => {
   const { t } = useTranslation();
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
+    <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 sm:px-6">
       <div className="flex justify-between flex-1 sm:hidden">
         <button
           onClick={() => onPageChange(page - 1)}
@@ -87,7 +87,7 @@ export const Pagination = ({ page, totalPages, onPageChange }) => {
       </div>
       <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm text-gray-700">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
             Page <span className="font-medium">{page}</span> of{' '}
             <span className="font-medium">{totalPages}</span>
           </p>
@@ -97,14 +97,14 @@ export const Pagination = ({ page, totalPages, onPageChange }) => {
             <button
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 1}
-              className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
+              className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 dark:text-gray-500 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 bg-white dark:bg-gray-800"
             >
               {t('common.previous')}
             </button>
             <button
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages}
-              className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
+              className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 dark:text-gray-500 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 bg-white dark:bg-gray-800"
             >
               {t('common.next')}
             </button>

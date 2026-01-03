@@ -48,12 +48,25 @@ const ShiftsPage = () => {
       ]);
 
       if (shiftsRes.success) {
-        setShifts(shiftsRes.shifts || []);
+        // Normalize shift data for display
+        const normalizedShifts = (shiftsRes.data || []).map(s => ({
+          ...s,
+          employee_name: s.employee?.fullName || s.employeeName || 'Unknown',
+          start_time: s.startTime || s.start_time,
+          end_time: s.endTime || s.end_time,
+          transaction_count: s.summary?.totalTransactions || 0
+        }));
+        setShifts(normalizedShifts);
         setPagination(prev => ({ ...prev, ...shiftsRes.pagination }));
       }
 
-      if (activeRes.success) {
-        setActiveShift(activeRes.shift);
+      if (activeRes.success && activeRes.data) {
+        // Normalize active shift data
+        setActiveShift({
+          ...activeRes.data,
+          start_time: activeRes.data.startTime,
+          transaction_count: activeRes.data.currentStats?.transactionCount || 0
+        });
       }
 
       // Fetch users for handover (admin only)
@@ -99,8 +112,20 @@ const ShiftsPage = () => {
   const viewShiftDetails = async (shift) => {
     try {
       const response = await shiftService.getShift(shift.uuid);
-      if (response.success) {
-        setSelectedShift(response.shift);
+      if (response.success && response.data) {
+        // Normalize shift detail data
+        setSelectedShift({
+          ...response.data,
+          employee_name: response.data.employee?.fullName || 'Unknown',
+          start_time: response.data.startTime,
+          end_time: response.data.endTime,
+          transaction_count: response.data.summary?.totalTransactions || 0,
+          summary: response.data.summary ? {
+            total_transactions: response.data.summary.totalTransactions || 0,
+            total_volume: response.data.summary.totalVolumeIn || 0,
+            total_profit: response.data.summary.totalProfit || 0
+          } : null
+        });
         setShowDetailModal(true);
       }
     } catch (error) {

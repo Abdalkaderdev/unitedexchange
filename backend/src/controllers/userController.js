@@ -189,9 +189,32 @@ const resetUserPassword = async (req, res, next) => {
   }
 };
 
+/**
+ * Get employee list for report filters (any authenticated user)
+ * Returns limited data: uuid and fullName only
+ */
+const getEmployeeList = async (req, res, next) => {
+  try {
+    const [users] = await pool.query(
+      'SELECT uuid, full_name FROM users WHERE is_active = TRUE ORDER BY full_name ASC'
+    );
+
+    res.json({
+      success: true,
+      data: users.map(u => ({
+        uuid: u.uuid,
+        fullName: u.full_name
+      }))
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getUsers,
   createUser,
   updateUser,
-  resetUserPassword
+  resetUserPassword,
+  getEmployeeList
 };

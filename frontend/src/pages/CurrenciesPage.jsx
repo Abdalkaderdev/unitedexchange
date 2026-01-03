@@ -1,19 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { PlusIcon, ArrowPathIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, ArrowPathIcon, PencilSquareIcon, BellIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 import currencyService from '../services/currencyService';
+import rateAlertService from '../services/rateAlertService';
 import { Button, Card } from '../components/common';
 import CurrencyList from '../components/currencies/CurrencyList';
 import CurrencyForm from '../components/currencies/CurrencyForm';
 import ExchangeRateList from '../components/currencies/ExchangeRateList';
 import ExchangeRateForm from '../components/currencies/ExchangeRateForm';
 import { BulkRateUpdateModal } from '../components/currencies';
+import AlertList from '../components/currencies/AlertList';
+import AlertForm from '../components/currencies/AlertForm';
 
 const CurrenciesPage = () => {
   const { t } = useTranslation();
-  const { isAdmin } = useAuth();
+  const { isAdmin } = useAuth(); // Assume all users can set alerts, or check if restricted
 
   // Tab state
   const [activeTab, setActiveTab] = useState('currencies');
@@ -31,6 +34,12 @@ const CurrenciesPage = () => {
   const [rateModalOpen, setRateModalOpen] = useState(false);
   const [savingRate, setSavingRate] = useState(false);
   const [bulkRateModalOpen, setBulkRateModalOpen] = useState(false);
+
+  // Rate Alerts state
+  const [alerts, setAlerts] = useState([]);
+  const [loadingAlerts, setLoadingAlerts] = useState(false);
+  const [alertModalOpen, setAlertModalOpen] = useState(false);
+  const [savingAlert, setSavingAlert] = useState(false);
 
   // Fetch currencies
   const fetchCurrencies = useCallback(async () => {
@@ -60,11 +69,28 @@ const CurrenciesPage = () => {
     }
   }, [t]);
 
+  // Fetch alerts
+  const fetchAlerts = useCallback(async () => {
+    try {
+      setLoadingAlerts(true);
+      const data = await rateAlertService.getAlerts();
+      setAlerts(data || []);
+    } catch (error) {
+      toast.error(t('currencies.fetchAlertsError') || 'Failed to fetch alerts');
+      console.error('Error fetching alerts:', error);
+    } finally {
+      setLoadingAlerts(false);
+    }
+  }, [t]);
+
   // Initial data fetch
   useEffect(() => {
     fetchCurrencies();
     fetchExchangeRates();
-  }, [fetchCurrencies, fetchExchangeRates]);
+    if (activeTab === 'alerts') {
+      fetchAlerts();
+    }
+  }, [fetchCurrencies, fetchExchangeRates, activeTab, fetchAlerts]);
 
   // Handle add currency
   const handleAddCurrency = () => {
@@ -141,10 +167,39 @@ const CurrenciesPage = () => {
     }
   };
 
+  // Handle alert submit
+  const handleAlertSubmit = async (data) => {
+    try {
+      setSavingAlert(true);
+      await rateAlertService.createAlert(data);
+      toast.success(t('currencies.alertCreated') || 'Alert created successfully');
+      setAlertModalOpen(false);
+      fetchAlerts();
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('common.error'));
+      console.error('Error creating alert:', error);
+    } finally {
+      setSavingAlert(false);
+    }
+  };
+
+  // Handle alert delete
+  const handleAlertDelete = async (uuid) => {
+    try {
+      await rateAlertService.deleteAlert(uuid);
+      toast.success(t('currencies.alertDeleted') || 'Alert deleted');
+      fetchAlerts();
+    } catch (error) {
+      toast.error(t('common.error'));
+      console.error('Error deleting alert:', error);
+    }
+  };
+
   // Tab configuration
   const tabs = [
     { id: 'currencies', label: t('currencies.currencies') },
-    { id: 'rates', label: t('currencies.exchangeRates') }
+    { id: 'rates', label: t('currencies.exchangeRates') },
+    { id: 'alerts', label: t('currencies.rateAlerts') || 'Rate Alerts' }
   ];
 
   return (
@@ -165,11 +220,10 @@ const CurrenciesPage = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === tab.id
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
             >
               {tab.label}
             </button>
@@ -260,6 +314,40 @@ const CurrenciesPage = () => {
         </Card>
       )}
 
+      {/* Rate Alerts Tab */}
+      {activeTab === 'alerts' && (
+        <Card
+          title={t('currencies.yourAlerts') || 'Your Alerts'}
+          action={
+            <div className="flex space-x-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={fetchAlerts}
+                disabled={loadingAlerts}
+              >
+                <ArrowPathIcon className={`h-4 w-4 mr-1 ${loadingAlerts ? 'animate-spin' : ''}`} />
+                {t('common.refresh')}
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setAlertModalOpen(true)}
+              >
+                <BellIcon className="h-4 w-4 mr-1" />
+                {t('common.create') || 'Create Alert'}
+              </Button>
+            </div>
+          }
+        >
+          <AlertList
+            alerts={alerts}
+            loading={loadingAlerts}
+            onDelete={handleAlertDelete}
+          />
+        </Card>
+      )}
+
       {/* Currency Form Modal */}
       <CurrencyForm
         isOpen={currencyModalOpen}
@@ -279,6 +367,16 @@ const CurrenciesPage = () => {
         onSubmit={handleRateSubmit}
         currencies={currencies}
         loading={savingRate}
+      />
+
+      {/* Alert Form Modal */}
+      <AlertForm
+        key={alertModalOpen ? 'open' : 'closed'}
+        isOpen={alertModalOpen}
+        onClose={() => setAlertModalOpen(false)}
+        onSubmit={handleAlertSubmit}
+        currencies={currencies}
+        loading={savingAlert}
       />
 
       {/* Bulk Rate Update Modal */}

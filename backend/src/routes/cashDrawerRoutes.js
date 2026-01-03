@@ -491,4 +491,65 @@ router.post(
   cashDrawerController.reconcile
 );
 
+/**
+ * @swagger
+ * /cash-drawers/{id}/status:
+ *   get:
+ *     summary: Get drawer status for closing (balance snapshot)
+ *     tags: [Cash Drawers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Drawer status retrieved
+ */
+router.get('/:id/status', cashDrawerController.getDrawerStatus);
+
+/**
+ * @swagger
+ * /cash-drawers/{id}/close:
+ *   post:
+ *     summary: Submit drawer closing report
+ *     tags: [Cash Drawers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - actualBalances
+ *             properties:
+ *               actualBalances:
+ *                 type: array
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Drawer closed successfully
+ */
+router.post(
+  '/:drawerId/close',
+  [
+    body('actualBalances').isArray().withMessage('Actual balances must be an array'),
+    body('notes').optional().isString()
+  ],
+  validate,
+  cashDrawerController.submitClosing
+);
+
 module.exports = router;

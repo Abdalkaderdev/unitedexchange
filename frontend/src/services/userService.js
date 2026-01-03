@@ -6,6 +6,12 @@ export const userService = {
     return response.data;
   },
 
+  // Get employee list for filters (accessible by all authenticated users)
+  getEmployees: async () => {
+    const response = await api.get('/users/employees');
+    return response.data;
+  },
+
   createUser: async (data) => {
     const response = await api.post('/users', data);
     return response.data;

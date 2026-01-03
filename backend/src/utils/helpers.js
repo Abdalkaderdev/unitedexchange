@@ -23,10 +23,12 @@ const logAudit = async (
   oldValues,
   newValues,
   ipAddress,
-  severity = 'info'
+  severity = 'info',
+  connection = null
 ) => {
   try {
-    await pool.query(
+    const db = connection || pool;
+    await db.query(
       `INSERT INTO audit_logs
        (user_id, action, resource_type, resource_id, old_values, new_values, ip_address, severity)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -52,11 +54,11 @@ const logAudit = async (
  */
 const getClientIp = (req) => {
   return req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
-         req.headers['x-real-ip'] ||
-         req.connection?.remoteAddress ||
-         req.socket?.remoteAddress ||
-         req.ip ||
-         'unknown';
+    req.headers['x-real-ip'] ||
+    req.connection?.remoteAddress ||
+    req.socket?.remoteAddress ||
+    req.ip ||
+    'unknown';
 };
 
 /**

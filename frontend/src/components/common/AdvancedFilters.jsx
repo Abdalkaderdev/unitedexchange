@@ -35,6 +35,7 @@ const AdvancedFilters = ({
     if (resourceType) {
       fetchPresets();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resourceType]);
 
   const fetchPresets = async () => {

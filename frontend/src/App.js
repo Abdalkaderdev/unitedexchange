@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Layout } from './components/layout';
 import { LoadingPage } from './components/common';
 
@@ -20,6 +21,9 @@ import ReportBuilderPage from './pages/ReportBuilderPage';
 import TransactionDetailPage from './pages/TransactionDetailPage';
 import AuditLogsPage from './pages/AuditLogsPage';
 import PermissionsPage from './pages/PermissionsPage';
+import PortalLayout from './components/layout/PortalLayout';
+import PortalLoginPage from './pages/portal/PortalLoginPage';
+import PortalDashboardPage from './pages/portal/PortalDashboardPage';
 
 // i18n
 import './i18n';
@@ -156,6 +160,21 @@ function AppRoutes() {
         }
       />
 
+      {/* Customer Portal Routes */}
+      <Route path="/portal" element={<Navigate to="/portal/login" replace />} />
+      <Route
+        path="/portal/login"
+        element={<PortalLoginPage />}
+      />
+      <Route
+        path="/portal/dashboard"
+        element={
+          <PortalLayout />
+        }
+      >
+        <Route index element={<PortalDashboardPage />} />
+      </Route>
+
       {/* Admin Only Routes */}
       <Route
         path="/users"
@@ -192,27 +211,29 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppRoutes />
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 3000,
-            style: {
-              background: '#333',
-              color: '#fff',
-            },
-            success: {
+        <ThemeProvider>
+          <AppRoutes />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
               style: {
-                background: '#10b981',
+                background: '#333',
+                color: '#fff',
               },
-            },
-            error: {
-              style: {
-                background: '#ef4444',
+              success: {
+                style: {
+                  background: '#10b981',
+                },
               },
-            },
-          }}
-        />
+              error: {
+                style: {
+                  background: '#ef4444',
+                },
+              },
+            }}
+          />
+        </ThemeProvider>
       </AuthProvider>
     </Router>
   );

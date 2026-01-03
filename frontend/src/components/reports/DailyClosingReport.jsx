@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CalendarIcon,
@@ -25,11 +25,7 @@ const DailyClosingReport = () => {
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
-  useEffect(() => {
-    fetchClosingReports();
-  }, []);
-
-  const fetchClosingReports = async () => {
+  const fetchClosingReports = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -41,7 +37,11 @@ const DailyClosingReport = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
+
+  useEffect(() => {
+    fetchClosingReports();
+  }, [fetchClosingReports]);
 
   const handleGenerateReport = async () => {
     setGenerating(true);

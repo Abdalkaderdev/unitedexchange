@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Select, Loading } from '../components/common';
 import api from '../services/api';
+import reportService from '../services/reportService';
 import toast from 'react-hot-toast';
 import {
   ChartBarIcon,
@@ -47,10 +48,10 @@ const ReportBuilderPage = () => {
   const fetchFilters = async () => {
     try {
       const [usersRes, currenciesRes] = await Promise.all([
-        api.get('/users'),
+        api.get('/users/employees'),
         api.get('/currencies')
       ]);
-      if (usersRes.data.success) setEmployees(usersRes.data.users || []);
+      if (usersRes.data.success) setEmployees(usersRes.data.data || []);
       if (currenciesRes.data.success) setCurrencies(currenciesRes.data.currencies || currenciesRes.data.data || []);
     } catch (error) {
       console.error('Error fetching filters:', error);
@@ -124,27 +125,42 @@ const ReportBuilderPage = () => {
     }
 
     try {
-      // Convert results to CSV
-      const headers = Object.keys(reportData.results[0]);
-      const csvRows = [headers.join(',')];
-      reportData.results.forEach(row => {
-        const values = headers.map(h => {
-          const val = row[h];
-          if (val === null || val === undefined) return '';
-          return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
+      if (format === 'csv') {
+        // Use client-side CSV export
+        const headers = Object.keys(reportData.results[0]);
+        const csvRows = [headers.join(',')];
+        reportData.results.forEach(row => {
+          const values = headers.map(h => {
+            const val = row[h];
+            if (val === null || val === undefined) return '';
+            return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
+          });
+          csvRows.push(values.join(','));
         });
-        csvRows.push(values.join(','));
-      });
-      const csv = csvRows.join('\n');
+        const csv = csvRows.join('\n');
 
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
-      link.download = `custom-report-${new Date().toISOString().split('T')[0]}.csv`;
-      link.click();
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = `custom-report-${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+      } else {
+        // Use server-side Excel export
+        setLoading(true);
+        const response = await reportService.exportCustomReport(config, format);
+        const blob = new Blob([response.data]);
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = `custom-report-${new Date().toISOString().split('T')[0]}.${format}`;
+        link.click();
+        window.URL.revokeObjectURL(link.href);
+        setLoading(false);
+      }
       toast.success(t('reportBuilder.exportSuccess'));
     } catch (error) {
+      console.error('Export error:', error);
       toast.error(t('common.error'));
+      setLoading(false);
     }
   };
 
@@ -244,11 +260,10 @@ const ReportBuilderPage = () => {
               <button
                 key={metric.value}
                 onClick={() => toggleMetric(metric.value)}
-                className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
-                  config.metrics.includes(metric.value)
-                    ? 'bg-primary-100 border-primary-500 text-primary-700'
-                    : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'
-                }`}
+                className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${config.metrics.includes(metric.value)
+                  ? 'bg-primary-100 border-primary-500 text-primary-700'
+                  : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'
+                  }`}
               >
                 {metric.label}
               </button>
@@ -284,98 +299,106 @@ const ReportBuilderPage = () => {
                 <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
                 {t('reportBuilder.exportCSV')}
               </Button>
+              <Button variant="secondary" onClick={() => exportReport('xlsx')}>
+                <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+                {t('reportBuilder.exportExcel')}
+              </Button>
             </div>
           )}
         </div>
-      </Card>
+      </Card >
 
       {/* Loading */}
-      {loading && (
-        <div className="flex justify-center py-12">
-          <Loading size="lg" />
-        </div>
-      )}
+      {
+        loading && (
+          <div className="flex justify-center py-12">
+            <Loading size="lg" />
+          </div>
+        )
+      }
 
       {/* Results */}
-      {!loading && reportData && reportData.results && (
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium">{t('reportBuilder.results')}</h2>
-            <span className="text-sm text-gray-500">
-              {reportData.results.length} {t('reportBuilder.records')}
-            </span>
-          </div>
+      {
+        !loading && reportData && reportData.results && (
+          <Card>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">{t('reportBuilder.results')}</h2>
+              <span className="text-sm text-gray-500">
+                {reportData.results.length} {t('reportBuilder.records')}
+              </span>
+            </div>
 
-          {reportData.results.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">{t('common.noData')}</p>
-          ) : viewMode === 'table' ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    {Object.keys(reportData.results[0]).map(key => (
-                      <th key={key} className="table-header">
-                        {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {reportData.results.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      {Object.entries(row).map(([key, value], i) => (
-                        <td key={i} className="table-cell">
-                          {formatValue(value, key)}
-                        </td>
+            {reportData.results.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">{t('common.noData')}</p>
+            ) : viewMode === 'table' ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {Object.keys(reportData.results[0]).map(key => (
+                        <th key={key} className="table-header">
+                          {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="h-96">
-              <ResponsiveContainer width="100%" height="100%">
-                {config.groupBy === 'employee' || config.groupBy === 'currency_in' || config.groupBy === 'currency_out' ? (
-                  <BarChart data={reportData.results}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey={config.groupBy} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    {config.metrics.map((metric, idx) => (
-                      <Bar
-                        key={metric}
-                        dataKey={metric}
-                        fill={getChartColor(idx)}
-                        name={metricOptions.find(m => m.value === metric)?.label || metric}
-                      />
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {reportData.results.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        {Object.entries(row).map(([key, value], i) => (
+                          <td key={i} className="table-cell">
+                            {formatValue(value, key)}
+                          </td>
+                        ))}
+                      </tr>
                     ))}
-                  </BarChart>
-                ) : (
-                  <LineChart data={reportData.results}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey={config.groupBy} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    {config.metrics.map((metric, idx) => (
-                      <Line
-                        key={metric}
-                        type="monotone"
-                        dataKey={metric}
-                        stroke={getChartColor(idx)}
-                        name={metricOptions.find(m => m.value === metric)?.label || metric}
-                      />
-                    ))}
-                  </LineChart>
-                )}
-              </ResponsiveContainer>
-            </div>
-          )}
-        </Card>
-      )}
-    </div>
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="h-96">
+                <ResponsiveContainer width="100%" height="100%">
+                  {config.groupBy === 'employee' || config.groupBy === 'currency_in' || config.groupBy === 'currency_out' ? (
+                    <BarChart data={reportData.results}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey={config.groupBy} />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      {config.metrics.map((metric, idx) => (
+                        <Bar
+                          key={metric}
+                          dataKey={metric}
+                          fill={getChartColor(idx)}
+                          name={metricOptions.find(m => m.value === metric)?.label || metric}
+                        />
+                      ))}
+                    </BarChart>
+                  ) : (
+                    <LineChart data={reportData.results}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey={config.groupBy} />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      {config.metrics.map((metric, idx) => (
+                        <Line
+                          key={metric}
+                          type="monotone"
+                          dataKey={metric}
+                          stroke={getChartColor(idx)}
+                          name={metricOptions.find(m => m.value === metric)?.label || metric}
+                        />
+                      ))}
+                    </LineChart>
+                  )}
+                </ResponsiveContainer>
+              </div>
+            )}
+          </Card>
+        )
+      }
+    </div >
   );
 };
 
