@@ -20,8 +20,8 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy source code
 COPY . .
 
-# Create logs directory
-RUN mkdir -p logs && chown -R nodeuser:nodejs logs
+# Create logs and uploads directories
+RUN mkdir -p logs uploads && chown -R nodeuser:nodejs logs uploads
 
 # Switch to non-root user
 USER nodeuser
