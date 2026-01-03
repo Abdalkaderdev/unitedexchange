@@ -111,9 +111,9 @@ const TransactionForm = ({ isOpen, onClose, onSuccess, initialData = null }) => 
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('transactions.createdSuccessfully')}</h3>
-          <p className="text-sm text-gray-500 mb-6">
-            {t('transactions.transactionNumber')}: <span className="font-mono font-medium text-gray-900">{successData.transactionNumber}</span>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">{t('transactions.createdSuccessfully')}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            {t('transactions.transactionNumber')}: <span className="font-mono font-medium text-gray-900 dark:text-gray-100">{successData.transactionNumber}</span>
           </p>
 
           <div className="flex flex-col gap-3">
@@ -152,7 +152,7 @@ const TransactionForm = ({ isOpen, onClose, onSuccess, initialData = null }) => 
 
         {emailModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-500 bg-opacity-75">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-96">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl dark:shadow-gray-900/50 w-96">
               <h3 className="text-lg font-medium mb-4">{t('transactions.enterEmail')}</h3>
               <form onSubmit={async (e) => {
                 e.preventDefault();
@@ -170,7 +170,7 @@ const TransactionForm = ({ isOpen, onClose, onSuccess, initialData = null }) => 
                   name="email"
                   type="email"
                   required
-                  className="w-full border rounded p-2 mb-4"
+                  className="w-full border dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded p-2 mb-4"
                   placeholder="customer@example.com"
                 />
                 <div className="flex justify-end gap-2">

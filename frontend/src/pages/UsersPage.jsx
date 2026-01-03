@@ -110,7 +110,7 @@ const UsersPage = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{t('users.title')}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('users.title')}</h1>
         <Button onClick={openCreateModal}>
           <PlusIcon className="h-5 w-5 mr-2 rtl:mr-0 rtl:ml-2" />
           {t('users.newUser')}
@@ -119,8 +119,8 @@ const UsersPage = () => {
 
       <Card>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
                 <th className="table-header">{t('auth.username')}</th>
                 <th className="table-header">{t('users.fullName')}</th>
@@ -130,12 +130,12 @@ const UsersPage = () => {
                 <th className="table-header">{t('common.actions')}</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 dark:divide-gray-700">
               {users.map((user) => (
-                <tr key={user.uuid} className="hover:bg-gray-50">
+                <tr key={user.uuid} className="hover:bg-gray-50 dark:bg-gray-900">
                   <td className="table-cell font-medium">{user.username}</td>
                   <td className="table-cell">{user.fullName}</td>
-                  <td className="table-cell text-gray-500">{user.email}</td>
+                  <td className="table-cell text-gray-500 dark:text-gray-400">{user.email}</td>
                   <td className="table-cell">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                       user.role === 'admin'
@@ -250,7 +250,7 @@ const UsersPage = () => {
         size="sm"
       >
         <form onSubmit={handlePasswordSubmit(onPasswordSubmit)} className="space-y-4">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {t('users.resetPassword')} for: <strong>{selectedUser?.fullName}</strong>
           </p>
           <Input

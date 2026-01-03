@@ -232,7 +232,7 @@ const MonthlyReport = () => {
               <ChevronDownIcon className="h-4 w-4 ml-2" />
             </Button>
             {exportDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 dark:ring-gray-700 ring-black ring-opacity-5 z-10">
                 <div className="py-1">
                   <button
                     onClick={() => handleExport('xlsx')}

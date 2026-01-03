@@ -181,7 +181,7 @@ const ShiftsPage = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{t('shifts.title')}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('shifts.title')}</h1>
         {!activeShift ? (
           <Button onClick={() => setShowStartModal(true)}>
             <PlayIcon className="h-5 w-5 mr-2 rtl:mr-0 rtl:ml-2" />
@@ -251,8 +251,8 @@ const ShiftsPage = () => {
       {/* Shifts Table */}
       <Card>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
                 <th className="table-header">{t('shifts.employee')}</th>
                 <th className="table-header">{t('shifts.startTime')}</th>
@@ -263,16 +263,16 @@ const ShiftsPage = () => {
                 <th className="table-header">{t('common.actions')}</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 dark:divide-gray-700">
               {shifts.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan="7" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                     {t('common.noData')}
                   </td>
                 </tr>
               ) : (
                 shifts.map((shift) => (
-                  <tr key={shift.uuid} className="hover:bg-gray-50">
+                  <tr key={shift.uuid} className="hover:bg-gray-50 dark:bg-gray-900">
                     <td className="table-cell">
                       <div className="flex items-center">
                         <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center">
@@ -343,7 +343,7 @@ const ShiftsPage = () => {
         title={t('shifts.handover')}
       >
         <form onSubmit={handleHandoverSubmit(handoverShift)} className="space-y-4">
-          <p className="text-sm text-gray-500">{t('shifts.handoverConfirm')}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{t('shifts.handoverConfirm')}</p>
           <Select
             label={t('shifts.handoverTo')}
             options={[
@@ -388,34 +388,34 @@ const ShiftsPage = () => {
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-500">{t('shifts.employee')}</label>
+                <label className="text-sm text-gray-500 dark:text-gray-400">{t('shifts.employee')}</label>
                 <p className="font-medium">{selectedShift.employee_name}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">{t('common.status')}</label>
+                <label className="text-sm text-gray-500 dark:text-gray-400">{t('common.status')}</label>
                 <p>{getStatusBadge(selectedShift.status)}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">{t('shifts.startTime')}</label>
+                <label className="text-sm text-gray-500 dark:text-gray-400">{t('shifts.startTime')}</label>
                 <p className="font-medium">{formatDateTime(selectedShift.start_time)}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">{t('shifts.endTime')}</label>
+                <label className="text-sm text-gray-500 dark:text-gray-400">{t('shifts.endTime')}</label>
                 <p className="font-medium">{formatDateTime(selectedShift.end_time)}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">{t('shifts.duration')}</label>
+                <label className="text-sm text-gray-500 dark:text-gray-400">{t('shifts.duration')}</label>
                 <p className="font-medium">{formatDuration(selectedShift.start_time, selectedShift.end_time)}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">{t('transactions.title')}</label>
+                <label className="text-sm text-gray-500 dark:text-gray-400">{t('transactions.title')}</label>
                 <p className="font-medium">{selectedShift.transaction_count || 0}</p>
               </div>
             </div>
 
             {selectedShift.notes && (
               <div>
-                <label className="text-sm text-gray-500">{t('common.notes')}</label>
+                <label className="text-sm text-gray-500 dark:text-gray-400">{t('common.notes')}</label>
                 <p className="mt-1 text-gray-700 bg-gray-50 p-3 rounded">{selectedShift.notes}</p>
               </div>
             )}
@@ -426,15 +426,15 @@ const ShiftsPage = () => {
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-blue-50 p-4 rounded-lg text-center">
                     <p className="text-2xl font-bold text-blue-600">{selectedShift.summary.total_transactions}</p>
-                    <p className="text-sm text-gray-500">{t('transactions.title')}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('transactions.title')}</p>
                   </div>
                   <div className="bg-green-50 p-4 rounded-lg text-center">
                     <p className="text-2xl font-bold text-green-600">${selectedShift.summary.total_volume?.toLocaleString()}</p>
-                    <p className="text-sm text-gray-500">{t('reports.totalVolume')}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('reports.totalVolume')}</p>
                   </div>
                   <div className="bg-purple-50 p-4 rounded-lg text-center">
                     <p className="text-2xl font-bold text-purple-600">${selectedShift.summary.total_profit?.toLocaleString()}</p>
-                    <p className="text-sm text-gray-500">{t('reports.profit')}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('reports.profit')}</p>
                   </div>
                 </div>
               </div>

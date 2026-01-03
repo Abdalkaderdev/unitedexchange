@@ -168,7 +168,7 @@ const AuditLogsPage = () => {
   return (
     <div className={`space-y-6 ${isRTL ? 'rtl' : 'ltr'}`} dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{t('audit.title') || 'Audit Logs'}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('audit.title') || 'Audit Logs'}</h1>
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={() => setShowFilters(!showFilters)}>
             <FunnelIcon className="h-4 w-4 mr-2" />
@@ -247,8 +247,8 @@ const AuditLogsPage = () => {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('audit.timestamp') || 'Timestamp'}</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('audit.user') || 'User'}</th>
@@ -258,16 +258,16 @@ const AuditLogsPage = () => {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('common.actions')}</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 dark:divide-gray-700">
                   {logs.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="px-4 py-12 text-center text-gray-500">
+                      <td colSpan="6" className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
                         {t('common.noData')}
                       </td>
                     </tr>
                   ) : (
                     logs.map((log) => (
-                      <tr key={log.id} className="hover:bg-gray-50">
+                      <tr key={log.id} className="hover:bg-gray-50 dark:bg-gray-900">
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {formatDate(log.createdAt)}
                         </td>

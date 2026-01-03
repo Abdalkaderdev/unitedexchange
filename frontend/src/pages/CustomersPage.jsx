@@ -194,7 +194,7 @@ const CustomersPage = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">{t('customers.title')}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('customers.title')}</h1>
         <Button onClick={openCreateModal}>
           <PlusIcon className="h-5 w-5 mr-2 rtl:mr-0 rtl:ml-2" />
           {t('customers.newCustomer')}
@@ -243,8 +243,8 @@ const CustomersPage = () => {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900">
                   <tr>
                     <th className="table-header w-12">
                       <input
@@ -262,10 +262,10 @@ const CustomersPage = () => {
                     <th className="table-header">{t('common.actions')}</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 dark:divide-gray-700">
                   {customers.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan="7" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                         {t('common.noData')}
                       </td>
                     </tr>
@@ -282,12 +282,12 @@ const CustomersPage = () => {
                         </td>
                         <td className="table-cell">
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center">
+                            <div className="flex-shrink-0 h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
                               <UserIcon className="h-5 w-5 text-gray-500" />
                             </div>
                             <div className="ml-4 rtl:ml-0 rtl:mr-4">
                               <div className="flex items-center">
-                                <span className="font-medium text-gray-900">{customer.fullName}</span>
+                                <span className="font-medium text-gray-900 dark:text-gray-100">{customer.fullName}</span>
                                 {customer.isVip && (
                                   <StarSolidIcon className="h-4 w-4 ml-1 text-yellow-500" />
                                 )}
@@ -298,13 +298,13 @@ const CustomersPage = () => {
                         <td className="table-cell">
                           <div className="text-sm">
                             {customer.phone && (
-                              <div className="flex items-center text-gray-600">
+                              <div className="flex items-center text-gray-600 dark:text-gray-400">
                                 <PhoneIcon className="h-4 w-4 mr-1" />
                                 {customer.phone}
                               </div>
                             )}
                             {customer.email && (
-                              <div className="flex items-center text-gray-600">
+                              <div className="flex items-center text-gray-600 dark:text-gray-400">
                                 <EnvelopeIcon className="h-4 w-4 mr-1" />
                                 {customer.email}
                               </div>
@@ -313,7 +313,7 @@ const CustomersPage = () => {
                         </td>
                         <td className="table-cell">
                           {customer.idType && (
-                            <div className="flex items-center text-sm text-gray-600">
+                            <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                               <IdentificationIcon className="h-4 w-4 mr-1" />
                               <span className="capitalize">{customer.idType.replace('_', ' ')}</span>
                               {customer.idNumber && (
@@ -325,7 +325,7 @@ const CustomersPage = () => {
                         <td className="table-cell">
                           <div className="text-sm">
                             <div>{customer.totalTransactions || 0} {t('transactions.title')}</div>
-                            <div className="text-gray-500">${formatCurrency(customer.totalVolume)}</div>
+                            <div className="text-gray-500 dark:text-gray-400">${formatCurrency(customer.totalVolume)}</div>
                           </div>
                         </td>
                         <td className="table-cell">
@@ -469,7 +469,7 @@ const CustomersPage = () => {
         {selectedCustomer && (
           <div className="space-y-6">
             <div className="flex items-center">
-              <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center">
+              <div className="h-16 w-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
                 <UserIcon className="h-8 w-8 text-gray-500" />
               </div>
               <div className="ml-4 rtl:ml-0 rtl:mr-4">
@@ -484,27 +484,27 @@ const CustomersPage = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-500">{t('customers.phone')}</label>
+                <label className="text-sm text-gray-500 dark:text-gray-400">{t('customers.phone')}</label>
                 <p className="font-medium">{selectedCustomer.phone || '-'}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">{t('customers.email')}</label>
+                <label className="text-sm text-gray-500 dark:text-gray-400">{t('customers.email')}</label>
                 <p className="font-medium">{selectedCustomer.email || '-'}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">{t('customers.idType')}</label>
+                <label className="text-sm text-gray-500 dark:text-gray-400">{t('customers.idType')}</label>
                 <p className="font-medium capitalize">{selectedCustomer.idType?.replace('_', ' ') || '-'}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">{t('customers.idNumber')}</label>
+                <label className="text-sm text-gray-500 dark:text-gray-400">{t('customers.idNumber')}</label>
                 <p className="font-medium">{selectedCustomer.idNumber || '-'}</p>
               </div>
               <div className="col-span-2">
-                <label className="text-sm text-gray-500">{t('customers.address')}</label>
+                <label className="text-sm text-gray-500 dark:text-gray-400">{t('customers.address')}</label>
                 <p className="font-medium">{selectedCustomer.address || '-'}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">{t('customers.memberSince')}</label>
+                <label className="text-sm text-gray-500 dark:text-gray-400">{t('customers.memberSince')}</label>
                 <p className="font-medium">{formatDate(selectedCustomer.createdAt)}</p>
               </div>
             </div>
@@ -515,15 +515,15 @@ const CustomersPage = () => {
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-gray-50 p-4 rounded-lg text-center">
                     <p className="text-2xl font-bold text-primary-600">{customerStats.completedTransactions || 0}</p>
-                    <p className="text-sm text-gray-500">{t('transactions.title')}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('transactions.title')}</p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg text-center">
                     <p className="text-2xl font-bold text-green-600">${formatCurrency(customerStats.totalVolumeIn)}</p>
-                    <p className="text-sm text-gray-500">{t('reports.totalVolume')}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('reports.totalVolume')}</p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg text-center">
                     <p className="text-2xl font-bold text-blue-600">{formatDate(customerStats.lastTransactionDate)}</p>
-                    <p className="text-sm text-gray-500">{t('customers.lastTransaction')}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('customers.lastTransaction')}</p>
                   </div>
                 </div>
               </div>

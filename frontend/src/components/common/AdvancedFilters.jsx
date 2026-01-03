@@ -213,15 +213,15 @@ const AdvancedFilters = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
       {/* Filter Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50"
+        className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
         onClick={onToggle}
       >
         <div className="flex items-center gap-2">
-          <FunnelIcon className="h-5 w-5 text-gray-500" />
-          <span className="font-medium text-gray-700">{t('common.filter')}</span>
+          <FunnelIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          <span className="font-medium text-gray-700 dark:text-gray-200">{t('common.filter')}</span>
           {activeFiltersCount > 0 && (
             <span className="px-2 py-0.5 text-xs font-medium bg-primary-100 text-primary-700 rounded-full">
               {activeFiltersCount}
@@ -231,7 +231,7 @@ const AdvancedFilters = ({
         <div className="flex items-center gap-2">
           {presets.length > 0 && (
             <select
-              className="text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+              className="text-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:ring-primary-500 focus:border-primary-500"
               value={selectedPreset}
               onChange={(e) => handlePresetSelect(e.target.value)}
               onClick={(e) => e.stopPropagation()}
@@ -245,22 +245,22 @@ const AdvancedFilters = ({
             </select>
           )}
           {isOpen ? (
-            <ChevronUpIcon className="h-5 w-5 text-gray-400" />
+            <ChevronUpIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
           ) : (
-            <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+            <ChevronDownIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
           )}
         </div>
       </div>
 
       {/* Filter Content */}
       {isOpen && (
-        <div className="px-4 pb-4 border-t border-gray-200">
+        <div className="px-4 pb-4 border-t border-gray-200 dark:border-gray-700">
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-4">
             {filterConfig.map(renderFilterField)}
           </div>
 
           {/* Filter Actions */}
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
             <div className="flex items-center gap-2">
               <Button onClick={onApply}>
                 <FunnelIcon className="h-4 w-4 mr-1" />
@@ -297,8 +297,8 @@ const AdvancedFilters = ({
       {/* Save Preset Modal */}
       {showSaveModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">{t('filters.savePreset') || 'Save Filter Preset'}</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">{t('filters.savePreset') || 'Save Filter Preset'}</h3>
             <Input
               label={t('common.name')}
               value={presetName}
@@ -310,9 +310,9 @@ const AdvancedFilters = ({
                 type="checkbox"
                 checked={isDefault}
                 onChange={(e) => setIsDefault(e.target.checked)}
-                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
               />
-              <span className="text-sm text-gray-600">{t('filters.setAsDefault') || 'Set as default'}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{t('filters.setAsDefault') || 'Set as default'}</span>
             </label>
             <div className="flex justify-end gap-2 mt-6">
               <Button variant="secondary" onClick={() => setShowSaveModal(false)}>
