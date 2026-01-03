@@ -45,8 +45,8 @@ const CurrenciesPage = () => {
   const fetchCurrencies = useCallback(async () => {
     try {
       setLoadingCurrencies(true);
-      const data = await currencyService.getCurrencies();
-      setCurrencies(data);
+      const response = await currencyService.getCurrencies();
+      setCurrencies(response.success ? response.data : []);
     } catch (error) {
       toast.error(t('currencies.fetchError'));
       console.error('Error fetching currencies:', error);
@@ -59,8 +59,8 @@ const CurrenciesPage = () => {
   const fetchExchangeRates = useCallback(async () => {
     try {
       setLoadingRates(true);
-      const data = await currencyService.getExchangeRates();
-      setExchangeRates(data);
+      const response = await currencyService.getExchangeRates();
+      setExchangeRates(response.success ? response.data : []);
     } catch (error) {
       toast.error(t('currencies.fetchRatesError'));
       console.error('Error fetching exchange rates:', error);

@@ -39,7 +39,7 @@ const CloseShiftModal = ({ isOpen, onClose, shift, onSuccess }) => {
         shiftService.getExpectedBalances(shift.uuid)
       ]);
 
-      setCurrencies(currenciesRes || []);
+      setCurrencies(currenciesRes.success ? currenciesRes.data : []);
 
       if (expectedRes.success) {
         setExpectedBalances(expectedRes.data || []);

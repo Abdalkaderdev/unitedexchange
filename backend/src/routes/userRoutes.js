@@ -120,8 +120,8 @@ router.post(
       .withMessage('Full name must be 2-100 characters'),
     body('role')
       .optional()
-      .isIn(['admin', 'employee'])
-      .withMessage('Role must be admin or employee')
+      .isIn(['admin', 'manager', 'teller', 'viewer', 'employee'])
+      .withMessage('Role must be admin, manager, teller, viewer, or employee')
   ],
   validate,
   userController.createUser
@@ -175,8 +175,8 @@ router.put(
       .withMessage('Full name must be 2-100 characters'),
     body('role')
       .optional()
-      .isIn(['admin', 'employee'])
-      .withMessage('Role must be admin or employee'),
+      .isIn(['admin', 'manager', 'teller', 'viewer', 'employee'])
+      .withMessage('Role must be admin, manager, teller, viewer, or employee'),
     body('isActive').optional().isBoolean().withMessage('isActive must be a boolean')
   ],
   validate,

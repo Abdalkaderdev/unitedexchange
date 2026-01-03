@@ -63,8 +63,8 @@ const RateHistoryPage = () => {
   const fetchCurrencies = useCallback(async () => {
     try {
       setLoadingCurrencies(true);
-      const data = await currencyService.getCurrencies(true);
-      setCurrencies(data);
+      const response = await currencyService.getCurrencies(true);
+      setCurrencies(response.success ? response.data : []);
     } catch (error) {
       toast.error(t('currencies.fetchError'));
       console.error('Error fetching currencies:', error);

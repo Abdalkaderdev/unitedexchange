@@ -33,12 +33,13 @@ const OpenShiftModal = ({ isOpen, onClose, onSuccess }) => {
         cashDrawerService ? cashDrawerService.getDrawers().catch(() => ({ success: true, data: [] })) : Promise.resolve({ success: true, data: [] })
       ]);
 
-      setCurrencies(currenciesRes || []);
+      const currenciesData = currenciesRes.success ? currenciesRes.data : [];
+      setCurrencies(currenciesData);
       setCashDrawers(drawersRes?.data || []);
 
       // Initialize with main currencies (USD, IQD, EUR if available)
       const mainCurrencyCodes = ['USD', 'IQD', 'EUR'];
-      const initialBalances = (currenciesRes || [])
+      const initialBalances = currenciesData
         .filter(c => mainCurrencyCodes.includes(c.code))
         .map(c => ({
           currencyId: c.id,

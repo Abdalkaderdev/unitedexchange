@@ -48,9 +48,9 @@ const CashDrawersPage = () => {
         cashDrawerService.getAlerts()
       ]);
 
-      if (drawersRes.success) setDrawers(drawersRes.drawers || []);
-      if (currenciesRes.success) setCurrencies(currenciesRes.currencies || currenciesRes.data || []);
-      if (alertsRes.success) setAlerts(alertsRes.alerts || []);
+      if (drawersRes.success) setDrawers(drawersRes.data || []);
+      if (currenciesRes.success) setCurrencies(currenciesRes.data || []);
+      if (alertsRes.success) setAlerts(alertsRes.data || []);
     } catch (error) {
       toast.error(t('common.error'));
     } finally {

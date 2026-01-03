@@ -158,8 +158,8 @@ const updateRolePermissions = async (req, res, next) => {
     clearPermissionCache();
 
     // Log audit
-    const { logAudit } = require('../utils/audit');
-    const ipAddress = req.ip || req.connection?.remoteAddress;
+    const { logAudit, getClientIp } = require('../utils/helpers');
+    const ipAddress = getClientIp(req);
     await logAudit(
       req.user.id,
       'UPDATE',

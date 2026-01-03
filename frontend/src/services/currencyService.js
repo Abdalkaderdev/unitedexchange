@@ -4,7 +4,7 @@ export const currencyService = {
   getCurrencies: async (active) => {
     const params = active !== undefined ? { active } : {};
     const response = await api.get('/currencies', { params });
-    return response.data.data || [];
+    return response.data;
   },
 
   createCurrency: async (data) => {
@@ -19,7 +19,7 @@ export const currencyService = {
 
   getExchangeRates: async () => {
     const response = await api.get('/currencies/rates');
-    return response.data.data || [];
+    return response.data;
   },
 
   setExchangeRate: async (data) => {

@@ -43,8 +43,8 @@ const TransactionList = ({ onRefresh }) => {
 
   const fetchCurrencies = async () => {
     try {
-      const currencies = await currencyService.getCurrencies(true);
-      setCurrencies(currencies || []);
+      const response = await currencyService.getCurrencies(true);
+      setCurrencies(response.success ? response.data : []);
     } catch (error) {
       console.error('Failed to fetch currencies:', error);
     }

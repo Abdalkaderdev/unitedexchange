@@ -10,7 +10,7 @@ const migrations = [
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
-    role ENUM('admin', 'employee') NOT NULL DEFAULT 'employee',
+    role ENUM('admin', 'manager', 'teller', 'viewer', 'employee') NOT NULL DEFAULT 'employee',
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

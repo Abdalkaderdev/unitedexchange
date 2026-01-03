@@ -21,10 +21,12 @@ const CurrencyCalculator = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [currenciesData, ratesData] = await Promise.all([
+      const [currenciesRes, ratesRes] = await Promise.all([
         currencyService.getCurrencies(true), // Only active currencies
         currencyService.getExchangeRates()
       ]);
+      const currenciesData = currenciesRes.success ? currenciesRes.data : [];
+      const ratesData = ratesRes.success ? ratesRes.data : [];
       setCurrencies(currenciesData);
       setExchangeRates(ratesData);
 
